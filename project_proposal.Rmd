@@ -1,0 +1,48 @@
+---
+title: "Data Analysis Project Proposal"
+author: "Preeti Agrawal, Thimira Bandara, Michael Conlin, Constatin Kappel"
+date: "2023-07-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Analysis Project Proposal
+### STAT 420, Summer 2023
+
+#### 1. The names of the students who will be contributing to the group project.
+We have four students in our project group:
+
+- Preeti Agrawal
+- Thimira Bandara
+- Michael Conlin
+- Constatin Kappel
+
+#### 2. A tentative title for the project. 
+
+Health Outcome Analysis using the NHANES Dataset
+
+#### 3. Description of the data file (what they contain including number of variables and number of records). You do not necessarily have to list all the variables, but at least mention those of greatest importance. 
+
+#### 4. Background information on the data sets, including specific citation of their source (so that I can also access it). 
+
+#### 5. A brief statement of the business, science, research, or personal interest you have in the data set which you hope to explore.
+
+#### 6. Evidence that the data can be loaded into `R`. Load the data, and print the first few values of the response variable as evidence.
+
+```{r eval=FALSE}
+install.packages("NHANES")
+
+```
+
+```{r}
+library(NHANES)
+head(NHANES$BMI)
+```
+
+
+
+
+
