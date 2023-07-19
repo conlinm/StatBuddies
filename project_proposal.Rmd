@@ -30,15 +30,21 @@ Health Outcome Analysis using the NHANES Dataset
 
 #### 4. Background information on the data sets, including specific citation of their source (so that I can also access it). 
 
+This dataset targets "the non-institutionalized civilian resident population of the United States", according to the description. It has been published by the *American National Health and Nutrition Examination surveys" since the 1960s. 
+The full data can be obtained from [CDC.gov](http://www.cdc.gov/nchs/nhanes.htm). 
+We are using a slice of the dataset from 2009-2012 which has been edited. The advantage of this version of the dataset is that it has been somewhat cleaned, it is smaller than the full data and can be easily loaded from the `NHANES` package in R.  
+
+
 #### 5. A brief statement of the business, science, research, or personal interest you have in the data set which you hope to explore.
 
-We are interested in this data set for...health 
+The dataset has a lot of different predictors which we can use for modeling a numerical health parameter, such as the body mass index, BMI. Obesity is an endemic health issue common to many industrialized nations in the world. It is known that obesity is related to cardiovascular disease (high blood pressure, heart attack, stroke), type II diabetes, sleep apnoea, metabolic syndrome, fatty liver disease and cancer [CDC on obesity](https://www.cdc.gov/healthyweight/effects/index.html). Obesity, which can be measured by the BMI, is therefore a relevant health issue. The dataset could help us to build an interpretable model which identifies and quantifies the influence of several physical and life style-related predictors on body weight. 
 
 #### 6. Evidence that the data can be loaded into `R`. Load the data, and print the first few values of the response variable as evidence.
 
 ```{r eval=FALSE}
-install.packages("NHANES")
-
+if (!require(NHANES)) {
+  install.packages("NHANES")  
+}
 ```
 
 ```{r}

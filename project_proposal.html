@@ -386,16 +386,37 @@ importance.</h4>
 <div id="background-information-on-the-data-sets-including-specific-citation-of-their-source-so-that-i-can-also-access-it." class="section level4">
 <h4>4. Background information on the data sets, including specific
 citation of their source (so that I can also access it).</h4>
+<p>This dataset targets “the non-institutionalized civilian resident
+population of the United States”, according to the description. It has
+been published by the *American National Health and Nutrition
+Examination surveys” since the 1960s. The full data can be obtained from
+<a href="http://www.cdc.gov/nchs/nhanes.htm">CDC.gov</a>. We are using a
+slice of the dataset from 2009-2012 which has been edited. The advantage
+of this version of the dataset is that it has been somewhat cleaned, it
+is smaller than the full data and can be easily loaded from the
+<code>NHANES</code> package in R.</p>
 </div>
 <div id="a-brief-statement-of-the-business-science-research-or-personal-interest-you-have-in-the-data-set-which-you-hope-to-explore." class="section level4">
 <h4>5. A brief statement of the business, science, research, or personal
 interest you have in the data set which you hope to explore.</h4>
+<p>The dataset has a lot of different predictors which we can use for
+modeling a numerical health parameter, such as the body mass index, BMI.
+Obesity is an endemic health issue common to many industrialized nations
+in the world. It is known that obesity is related to cardiovascular
+disease (high blood pressure, heart attack, stroke), type II diabetes,
+sleep apnoea, metabolic syndrome, fatty liver disease and cancer <a href="https://www.cdc.gov/healthyweight/effects/index.html">CDC on
+obesity</a>. Obesity, which can be measured by the BMI, is therefore a
+relevant health issue. The dataset could help us to build an
+interpretable model which identifies and quantifies the influence of
+several physical and life style-related predictors on body weight.</p>
 </div>
 <div id="evidence-that-the-data-can-be-loaded-into-r.-load-the-data-and-print-the-first-few-values-of-the-response-variable-as-evidence." class="section level4">
 <h4>6. Evidence that the data can be loaded into <code>R</code>. Load
 the data, and print the first few values of the response variable as
 evidence.</h4>
-<pre class="r"><code>install.packages(&quot;NHANES&quot;)</code></pre>
+<pre class="r"><code>if (!require(NHANES)) {
+  install.packages(&quot;NHANES&quot;)  
+}</code></pre>
 <pre class="r"><code>library(NHANES)
 head(NHANES$BMI)</code></pre>
 <pre><code>## [1] 32.22 32.22 32.22 15.30 30.57 16.82</code></pre>
