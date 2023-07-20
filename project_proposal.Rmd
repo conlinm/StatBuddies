@@ -1,7 +1,7 @@
 ---
 title: "Data Analysis Project Proposal"
 author: "Preeti Agrawal, Thimira Bandara, Michael Conlin, Constatin Kappel"
-date: "2023-07-18"
+date: "2023-07-20"
 output: html_document
 ---
 
@@ -28,16 +28,23 @@ Health Outcome Analysis using the NHANES Dataset
 
 #### 3. Description of the data file (what they contain including number of variables and number of records). You do not necessarily have to list all the variables, but at least mention those of greatest importance. 
 
+The `NHANES` package in R consists of 10,000 records and 50 variables (columns). Out of these 10,000 records, 5,000 are for survey year 2009-10, and the other half are for survey year 2011_2012. We will most likely only focus on one of these survey years at a time, to avoid the probability of using data from the same individual twice.
+
+The variables are related to Demographics, Physical Measurements, Health, or Lifestyle. The variables include Gender, Age, Race1, Education, MaritalStatus, HHIncome (Total annual gross income for the household in US dollars), HomeOwn (with values of Home, Rent, or Other, Weight (in kg), Height (in cm), BMI (body mass index), BPSysAve (combined systolic blood pressure reading), TotChol (Total HDL cholesterol in mmol/L), Diabetes, DaysPhysHlthBad (self-reported number of days participant's physical health was not good out of the past 30 days), DaysMentHlthBad self-reported number of days participant's mental health was not good out of the past 30 days), Depressed, PhysActiveDays (number of days in a typical week that participant does moderate or vigorous-intensity activity).
+
+One potential variable we found interesting to consider as a response is BMI, as discussed further in Question 5.  We would be interested in seeing which dataset variables are predictors for BMI, for example, "Gender", "Age", "Race1", "Education", "MaritalStatus", "HHIncome", "SleepHrsNight", "PhysActiveDays", "DaysMentHlthBad".
+
+
 #### 4. Background information on the data sets, including specific citation of their source (so that I can also access it). 
 
-This dataset targets "the non-institutionalized civilian resident population of the United States", according to the description. It has been published by the *American National Health and Nutrition Examination surveys" since the 1960s. 
-The full data can be obtained from [CDC.gov](http://www.cdc.gov/nchs/nhanes.htm). 
+This dataset targets "the non-institutionalized civilian resident population of the United States", according to the description. It has been published by the *American National Health and Nutrition Examination surveys" since the 1960s. The full data can be obtained from [CDC.gov](http://www.cdc.gov/nchs/nhanes.htm). 
+
 We are using a slice of the dataset from 2009-2012 which has been edited. The advantage of this version of the dataset is that it has been somewhat cleaned, it is smaller than the full data and can be easily loaded from the `NHANES` package in R.  
 
 
 #### 5. A brief statement of the business, science, research, or personal interest you have in the data set which you hope to explore.
 
-The dataset has a lot of different predictors which we can use for modeling a numerical health parameter, such as the body mass index, BMI. Obesity is an endemic health issue common to many industrialized nations in the world. It is known that obesity is related to cardiovascular disease (high blood pressure, heart attack, stroke), type II diabetes, sleep apnoea, metabolic syndrome, fatty liver disease and cancer [CDC on obesity](https://www.cdc.gov/healthyweight/effects/index.html). Obesity, which can be measured by the BMI, is therefore a relevant health issue. The dataset could help us to build an interpretable model which identifies and quantifies the influence of several physical and life style-related predictors on body weight. 
+The dataset has a lot of different predictors which we can use for modeling a numerical health parameter, such as the body mass index, BMI. Obesity is an endemic health issue common to many industrialized nations in the world. It is known that obesity is related to cardiovascular disease (high blood pressure, heart attack, stroke), type II diabetes, sleep apnea, metabolic syndrome, fatty liver disease and cancer [CDC on obesity](https://www.cdc.gov/healthyweight/effects/index.html). Obesity, which can be measured by the BMI, is therefore a relevant health issue. The dataset could help us to build an interpretable model which identifies and quantifies the influence of several physical and life style-related predictors on body weight. 
 
 #### 6. Evidence that the data can be loaded into `R`. Load the data, and print the first few values of the response variable as evidence.
 
