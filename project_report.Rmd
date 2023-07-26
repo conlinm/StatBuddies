@@ -1,0 +1,27 @@
+---
+title: "NHANES Data Analysis Project"
+author: "STAT 420, Summer 2023, Preeti Agrawal, Thimira Bandara, Michael Conlin, Constatin Kappel"
+date: "2023-07-26"
+output:
+  pdf_document: default
+  html_document: 
+    theme: readable
+    toc: yes
+urlcolor: cyan
+---
+
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
+options(scipen = 1, digits = 4, width = 80, fig.align = "center")
+```
+
+# Title
+
+## Introduction
+
+## Methods
+
+## Results
+
+## Discussion
+
+## Appendix
