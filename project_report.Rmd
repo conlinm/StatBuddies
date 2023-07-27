@@ -20,6 +20,19 @@ options(scipen = 1, digits = 4, width = 80, fig.align = "center")
 
 ## Methods
 
+### Data Import
+
+```{r eval=FALSE}
+if (!require(NHANES)) {
+  install.packages("NHANES")  
+}
+```
+
+```{r}
+library(NHANES)
+head(NHANES)
+```
+
 ## Results
 
 ## Discussion
