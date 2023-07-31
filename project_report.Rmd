@@ -34,12 +34,29 @@ head(NHANES)
 ```
 ### Data Exploration and Cleaning
 
+#### Missing Values
+
+#### Variable Selection
+
 ### Model Building
+
+#### Stepwise Model Selection
+
+### Model Diagnostics
+
+#### Collinearity
+
+#### Variance Assessment
+
+#### Normality Assessment
 
 #### Data Interactions
 
 #### Data Transformations
 
+#### Outlier Assessment
+
+#### Final Model
 
 ## Results
 
