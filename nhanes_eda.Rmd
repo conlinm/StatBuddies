@@ -18,39 +18,41 @@ Loading the NHANES data for exploration.
 ```{r cars}
 library(NHANES)
 head(NHANES)
+#?NHANES
 ```
 
 ## Ruling out variables
 
-### Ruling out by reasoning
+### Ruling out variables by reasoning or by exploratory analysis
 
-These are all predictors in NHANES
+We have chosen `BMI` (Body mass index (weight/height2 in kg/m2)) as our response variable. In NHANES, this data is reported for participants aged 2 years or older, so that will focus on participants over 2 years old for our analysis. Provided below are all the predictors in NHANES, along with our response variable `BMI`.
 
 ```{r}
 sort(names(NHANES)) # alphabetic order
 ```
 
-All omitted predictors go into an overview table `df_exclude`. The variables to keep go into `df_keep`. 
+We will add all omitted predictors into an overview table `df_exclude`. The variables we would like to keep will be in `df_keep`. 
 
-1. Some predictors can be ruled out right away. Our response variable is `BMI`, so we should not use body `Weight` or `Height` as predictors. 
-1. The next group of predictors seems very closely related either by name or logic deduction, e.g. `Age`, `AgeDecade`, `AgeMonths`. Let's quickly double-check they are linearly related: 
+1. Some predictors can be ruled out right away. Our response variable is `BMI`, so we should not use body `Weight` or `Height` as predictors, because `BMI` is calculated by dividing the `Weight` by `Height`.  
+
+2. The next group of predictors seems very closely related either by name or logic deduction, for example, `Age`, `AgeDecade`, `AgeMonths`. Let's quickly double-check if they are linearly related: 
 
 ```{r, fig.asp={1}}
 pairs(subset(NHANES, select = c('Age', 'Age1stBaby', 'AgeDecade', 'AgeMonths', 'AgeFirstMarij', 'AgeRegMarij')))
 ```
 
-`Age`, `AgeDecade` and `AgeMonth` are clearly colinear, so we keep only `Age`. Likewise, both variables for Marijuana use appear colinear, so we keep only one, say `AgeRegMarij` and could decide to drop it later if not useful. We might keep `Age1stBaby`. 
+`Age`, `AgeDecade` and `AgeMonth` are clearly collinear, so we only keep `Age`. Likewise, both variables for Marijuana use appear collinear, so we keep only one, say `AgeRegMarij` and may decide to drop it later if it is not useful. We might keep `Age1stBaby`. 
 
-3. Next up we check all variables related to alcohol:
+3. Next, let's check all variables related to alcohol:
 
 ```{r, fig.asp=1}
 to_test = c("Alcohol12PlusYr", "AlcoholDay", "AlcoholYear")
 pairs(subset(NHANES, select = to_test))
 ```
 
-Colinearity is not as clear in this case, but one predictor related to alcohol consumption may be enough. Let's keep `AlcoholYear`. 
+Collinearity is not as clear in this case, but we believe one predictor related to alcohol consumption may be sufficient. We will keep `AlcoholYear`. 
 
-4. Let's now investigate the colinearity of other drug-related variables (note: `AgeRegMarij` was in the other group as well and we kept it):
+4. Let's now investigate the collinearity of other drug-related variables (note: `AgeRegMarij` was in the other group as well and we kept it):
 
 ```{r, fig.asp=1}
 to_test = c("SmokeNow", "Smoke100", "SmokeAge", "Marijuana", "RegularMarij", "AgeRegMarij", "HardDrugs")
@@ -58,25 +60,25 @@ pairs(subset(NHANES, select = to_test))
 
 ```
 
-Most of these predictors are categorical, so colinearity can not be seen, except for `SmokeAge` and `AgeRegMarij`. The latter makes sense as this drug is usually consumed via smoking. We can thus use one as a proxy for the other. Let's keep `SmokeNow` and `HardDrugs` as proxies for drug abuse and its potential effect on BMI. 
+Most of these predictors are categorical, so collinearity cannot be seen, except for `SmokeAge` and `AgeRegMarij`. The latter makes sense as this drug is usually consumed via smoking. We can thus use one as a proxy for the other. Let's keep `SmokeNow` and `HardDrugs` as proxies for drug abuse and its potential effect on BMI. 
 
-5. Now let's check for colinearity between different blood pressure related variables: 
+5. Now let's check for collinearity between different blood pressure related variables: 
 
 ```{r, fig.asp=1}
 to_test = c("BPDia1", "BPDia2", "BPDia3", "BPDiaAve", "BPSys1", "BPSys2", "BPSys3", "BPSysAve" )
 pairs(subset(NHANES, select=to_test))
 ```
 
-The blood pressure variables fall into two groups: diastolic and systolic blood pressure readings. Obviously, the must be strongly colinear within each group, which is the case. So, we only keep the average in each group `BPDiaAve` and `BPSysAve`.
+The blood pressure variables fall into two groups: diastolic and systolic blood pressure readings. We would expect there to be strongly collinearity within each group, which is the case. So, we only keep the average in each group `BPDiaAve` and `BPSysAve`.
 
-6. Next up let's investigate a few life-style variables related to being physically active or the opposite thereof, screentime:
+6. Next, let's investigate a few life-style variables related to being physically active or the opposite thereof, screen time:
 
 ```{r, fig.asp=1}
 to_test = c("PhysActive", "PhysActiveDays", "TVHrsDay", "CompHrsDay", "TVHrsDayChild", "CompHrsDayChild")
 pairs(subset(NHANES, select=to_test))
 ```
 
-Due to the nature of these variables being categorical, a clear picture of colinearity is not observable. Let's keep for now half of these parameters which have a bit denser levels, `PhysActiveDays`, `TVHrsDay`, `CompHrsDay`. 
+Due to the nature of these variables being categorical, a clear picture of collinearity is not observable. Let's keep half of these parameters for now, which are the ones with a bit denser levels, `PhysActiveDays`, `TVHrsDay`, `CompHrsDay`. 
 
 7. Now we should look into some other health related variables. Let's see for cholesterol and diabetes related predictors:
 
@@ -85,45 +87,48 @@ to_test = c("DirectChol", "TotChol", "Diabetes", "DiabetesAge")
 pairs(subset(NHANES, select = to_test))
 ```
 
-`DirectChol` and `TotChol` appear to be colinear, let's keep `TotChol`. Of diabetes related ones we keep `Diabetes`. 
+`DirectChol` and `TotChol` appear to be collinear, let's keep `TotChol`. Out of the diabetes related ones, we keep `Diabetes`.
 
-8. More health related variables, here related to urogenesis:
+8. Now let's analyze more health related variables, such as those related to urogenesis below:
 
 ```{r, fig.asp=1}
 to_test = c("UrineVol1", "UrineFlow1", "UrineVol2", "UrineFlow2")
 pairs(subset(NHANES, select = to_test))
 ```
 
-Urine volume and urine flow appear colinear. Moreover, there might be colinearity between the first and second urine measurement, respectively. Let's keep `UrineVol1` for now. 
+Urine volume and urine flow appear collinear. Moreover, there might be collinearity between the first and second urine measurement, respectively. Let's keep `UrineVol1` for now. 
 
-9. Next up are a somewhat heterogenic group of variables related to health or mental health. E.g. somebody who is depressed might show little interest in doing things. 
+9. Next up are a somewhat heterogenic group of variables related to health or mental health. For example, somebody who is depressed might show little interest in doing things. 
 
 ```{r, fig.asp=1}
 to_test = c("HealthGen", "DaysPhysHlthBad", "DaysMentHlthBad", "LittleInterest", "Depressed" )
 pairs(subset(NHANES, select = to_test))
 ```
 
-Again, colinearity is not easy to spot in categorical variables. Let's pick `LittleInterest` as a mild form of mental health issue (which might lead to little physical activity and obesity) and `HealthGen` as a general health rating. 
+Again, collinearity is not easy to spot in categorical variables. Let's pick `LittleInterest` as a mild form of mental health issue (which might lead to little physical activity and obesity) and `HealthGen` as a general health rating. 
 
-10. Finally, let's add `nPregnancies` as pregnancy has an effect on body mass. 
+10. We decided to keep `Race1` and drop `Race3`, as they both capture the race of the study participant, and `Race3` data is not available for 2009-10. **review this at the meeting**
+
+11. We decided to keep `Poverty` which is a ratio of family income to poverty guidelines, and drop `HHIncomeMid` and `HHIncome`, as they both capture similar information to what the `Poverty` variable captures. **review this at the meeting**
+
+12. Finally, let's add `nPregnancies` as pregnancy has an effect on body mass. 
 
 ```{r }
+#Setting up the data frames with the variables we will be excluding and keeping for model building
+
 df_exclude = data.frame(predictor = c('Weight', 'Height', 'AgeDecade', 'AgeMonth', 'AgeRegMarij', 'Alcohol12PlusYr', 'AlcoholDay', 'Smoke100', 'SmokeAge', 'Marijuana', 'RegularMarij', "BPDia1", "BPDia2", "BPDia3", "BPSys1", "BPSys2", "BPSys3", 'PhysActive', 'TVHrsDayChild', 'CompHrsDayChild', 'DirectChol', 'DiabetesAge', "UrineFlow1", "UrineVol2", "UrineFlow2", "DaysPhysHlthBad", "DaysMentHlthBad", "Depressed"), 
-                        reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 'colinear with Age', 'colinear with Age', 'redundant with Marijuana', 'more sparse than AlcoholYear', 'redundant with AlcoholYear', 'redundant with SmokeNow', 'colinear with AgeRegMarij', 'redundant with AgeRegMarij, the two might be swapped', 'redundant with Marijuana', 'colinear with other blood pressure predictors', 'colinear with other blood pressure predictors', 'colinear with other blood pressure predictors', 'colinear with other blood pressure predictors', 'colinear with other blood pressure predictors', 'colinear with other blood pressure predictors', 'Redundant with PhysActiveDays', 'redundant with TVHrsDay', 'redundant with CompHrsDay', 'colinear with TotChol', 'redundant with Diabetes', 'colinear with UrineVol1', 'colinear with UrineVol1', 'colinear with UrineVol1', 'redundant with HealthGen', 'redundant with HealthGen', 'redundant with HealthGen'))
-df_keep = data.frame(predictor = c('Age', 'Age1stBaby', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'nPregnancies'))
+                        reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 'collinear with Age', 'collinear with Age', 'redundant with Marijuana', 'more sparse than AlcoholYear', 'redundant with AlcoholYear', 'redundant with SmokeNow', 'collinear with AgeRegMarij', 'redundant with AgeRegMarij, the two might be swapped', 'redundant with Marijuana', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'Redundant with PhysActiveDays', 'redundant with TVHrsDay', 'redundant with CompHrsDay', 'collinear with TotChol', 'redundant with Diabetes', 'collinear with UrineVol1', 'collinear with UrineVol1', 'collinear with UrineVol1', 'redundant with HealthGen', 'redundant with HealthGen', 'redundant with HealthGen'))
+
+df_keep = data.frame(predictor = c('SurveyYr', 'Age', 'Age1stBaby', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'nPregnancies'))
 #kable(df_exclude)
 
-
+#Discuss if these are others we want to keep:
+# need to convert to factor: Gender, Race1, SexOrientation, Education, MaritalStatus, SleepTrouble
+# Poverty, Pulse
+# Testosterone (Reported for participants aged 6 years or older. Not available for 2009-2010.)
+# SleepHrsNight
+#Added SurveyYr
 ```
-
-### Ruling out by exploratory analysis
-
-
-
-```{r}
-
-```
-
 
 ### Selected and reduced data sets
 
@@ -151,13 +156,26 @@ nhanes_select$LittleInterest = as.factor(nhanes_select$LittleInterest)
 ```
 
 
-Now it might be handy to have a mini dataset which is devoid of NAs. We can always go back to `nhanes_select` and impute missing data. For now let's get a quick idea of what sort of model we might get. The mini dataset is `nhanes_redux`. 
+Now it might be helpful to have a mini dataset which is devoid of NAs (missing values). We can always go back to `nhanes_select` and impute missing data. For now let's get a quick idea of what sort of model we might get. 
+
+Furthermore, the NHANES dataset has data for 2 survey years: 2009-10 and 2011-12. To avoid including data from the same participants twice, we will further filter our dataset down by the more recent year, 2011_12.
+
+The mini dataset after omitting missing values and filtering by a survey year is `nhanes_redux`. 
 
 ```{r}
-nhanes_redux = na.omit(nhanes_select)
+nhanes_redux = na.omit(nhanes_select) #removing missing values
+
+nhanes_redux = nhanes_redux[nhanes_redux$SurveyYr == '2011_12', ] #filtering by year
+nhanes_redux = subset(nhanes_redux, select = -c(SurveyYr)) #removing SurveyYr as a column for model building
+
+#View(nhanes_redux)
+
 n = nrow(nhanes_redux)
 n
 ```
+
+This is very reduced at only `r n` rows! 
+
 #Which variables have majority Nan values
 
 ```{r}
@@ -177,67 +195,95 @@ na_summary = data.frame(Column = names(na_counts), NA_Count = na_counts, NA_Perc
 # Print the summary
 print(na_summary)
 
-
 ```
-
-This is very reduced at only `r n` rows! 
 
 ## Model building
 
 ### Redux model
 
-We can now build a first model and test for homoskedasticity, normality and equal variance. We may also get a first impression of high influence variables and the variance inflation factor. 
+We can now build a first linear regression model with all variables identified above, and test for homoskedasticity, normality and equal variance. We may also get a first impression of high influence variables and the variance inflation factor. 
 
 ```{r}
 fit_redux = lm(BMI ~ ., data = nhanes_redux)
 summary(fit_redux)
 ```
+The p-value of the model leads to failing to reject the null hypothesis at an $\alpha$ of 0.05.
 
-Some tests
+Let's do some tests on this model to identify potential issues.
 
 ```{r}
 library(lmtest)
-bptest(fit_redux)
-shapiro.test(resid(fit_redux))
-cook_thresh = 4 * cooks.distance(fit_redux) / length(nhanes_redux)
-mean(cooks.distance(fit_redux) > cook_thresh)
+bptest(fit_redux) #to test for constant variance
+shapiro.test(resid(fit_redux)) #to test for normal distribution
+cook_thresh = 4 * cooks.distance(fit_redux) / length(nhanes_redux) 
+mean(cooks.distance(fit_redux) > cook_thresh) #to check for influential observations
 ```
 
 ```{r, fig.asp=1}
-plot(fitted(fit_redux), resid(fit_redux), col = "darkblue")
+#Fitted versus Residuals Plot
+plot(fitted(fit_redux), resid(fit_redux), col = "darkblue", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Fitted versus Residuals Plot")
 abline(h=0,col = "darkorange")
 ```
 
-Fitted-residuals plot reveals no obvious deviation from homoskedasticity (arguably we are looking at a very small subset!). The p.value of the BP-test is somewhat suspicious. The Shapiro-Wilk test does not appears suspicious. 
+Fitted-residuals plot reveals no obvious deviation from homoskedasticity (arguably we are looking at a very small subset!). However, the p.value of the BP-test, to check for the constant variance assumption, is somewhat suspicious. The Shapiro-Wilk test does not appear suspicious, suggesting that the normality assumption is not violated. 
 
 ```{r, fig.asp=1}
+#Normal Q-Q Plot
 qqnorm(resid(fit_redux), col = "dodgerblue")
 qqline(resid(fit_redux), col = "darkorange")
 ```
 
-The Q-Q-Plot might show some deviations from normality. Again, subset is small. 
+The Q-Q-Plot might show some deviations from normality. Again, the subset is small making it difficult to establish a pattern.  
 
-In the summary above many parameters had large p-values. Let's check for variance inflation. 
+In the summary above many parameters had large p-values. Let's check these for variance inflation. 
 
 ```{r}
 library(car)
 car::vif(fit_redux)
 ```
 
-Some variables, such as `r names(nhanes_redux)[which(car::vif(fit_redux) > 5)]` appear to have large variance inflation. 
+Some variables, such as `r names(nhanes_redux)[which(car::vif(fit_redux) > 5)]` appear to have a large variance inflation factor. 
 
-Let's do a quick model selection and check again. 
+Let's do an AIC Backward model selection and check the variance inflation factor of the selected predictors again. 
 
 ```{r}
 fit_red_sel = step(fit_redux, direction = "backward", trace = 0)
 summary(fit_red_sel)
-car::vif(fit_red_sel)
+car::vif(fit_red_sel) #checking the vif from the newly fitted model.
 ```
-As far as VIF is concerned this mini-model has improved over `fit_redux`. 
+As far as VIF is concerned this mini-model has improved over `fit_redux` The p-value of the overall model also results in a rejection of the null hypothesis, and shows that the regression is significant. However, most of the individual predictors are not significant in this model prompting us to investigate further regarding model selection. 
+
+Since we suspect the constant variance assumption may be violated, we next attempt a log transformation of the response as well as all two-way interactions. However, a lot of the two-way interactions gave us NA for coefficients, most likely due to the presence of categorical variables. We therefore limited the interaction to be that of Age with all the other variables except TVHrsDay which also resulted in an NA. We followed this with a backwards search with both AIC and BIC.
+
+```{r}
+#Function to calculate the LOOCVRMSE
+calc_loocv_rmse = function(model) {
+  sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+
+#Fitting the initial model with a log transformation of the response and some interactions
+fit_redux_transform_Age_int = lm(log(BMI) ~ . + Age:. - Age:TVHrsDay, data = nhanes_redux)
+#summary(fit_redux_transform_Age_int)
+
+#AIC backwards search
+fit_red_sel_aic = step(fit_redux_transform_Age_int, direction = "backward", trace = 0) 
+summary(fit_red_sel_aic)
+calc_loocv_rmse(fit_red_sel_aic) #Calculating the LOOCV RMSE
+ 
+#BIC backwards search
+n = length(resid(fit_redux_transform_Age_int))
+fit_red_sel_bic = step(fit_redux_transform_Age_int, direction = "backward", 
+                            k = log(n), trace = 0)
+summary(fit_red_sel_bic)
+calc_loocv_rmse(fit_red_sel_bic) #Calculating the LOOCV RMSE
+```
+After calculating the LOOCV RMSE, we see that the model chosen using BIC performs the best. It is therefore both the best model for prediction, as it has the best LOOCV RMSE and also the best model for explanation, as it is the smallest.
 
 ## Where to go from here
 
 * The `nhanes_redux` is really tiny. We want to think about a better strategy for dealing with NAs rather than just omitting 99% of the data. 
+* We can try including some other predictor variables listed in the Data selection area.
 * Once we can fit `nhanes_select_clean` we can run step-wise search again to find a reasonably good model and do the linear model tests as above again. 
 * We could also then check for partial correlation for some predictors (with high VIF?). 
 * ...
