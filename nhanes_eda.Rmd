@@ -111,7 +111,7 @@ Again, collinearity is not easy to spot in categorical variables. Let's pick `Li
 
 11. We decided to keep `Poverty` which is a ratio of family income to poverty guidelines, and drop `HHIncomeMid` and `HHIncome`, as they both capture similar information to what the `Poverty` variable captures. **review this at the meeting**
 
-12. Finally, let's add `nPregnancies` as pregnancy has an effect on body mass. 
+12. Finally, let's add `nPregnancies`, `Poverty` and `SleepHrsNight` as they has an effect on body mass.  
 
 ```{r }
 #Setting up the data frames with the variables we will be excluding and keeping for model building
@@ -119,15 +119,8 @@ Again, collinearity is not easy to spot in categorical variables. Let's pick `Li
 df_exclude = data.frame(predictor = c('Weight', 'Height', 'AgeDecade', 'AgeMonth', 'AgeRegMarij', 'Alcohol12PlusYr', 'AlcoholDay', 'Smoke100', 'SmokeAge', 'Marijuana', 'RegularMarij', "BPDia1", "BPDia2", "BPDia3", "BPSys1", "BPSys2", "BPSys3", 'PhysActive', 'TVHrsDayChild', 'CompHrsDayChild', 'DirectChol', 'DiabetesAge', "UrineFlow1", "UrineVol2", "UrineFlow2", "DaysPhysHlthBad", "DaysMentHlthBad", "Depressed"), 
                         reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 'collinear with Age', 'collinear with Age', 'redundant with Marijuana', 'more sparse than AlcoholYear', 'redundant with AlcoholYear', 'redundant with SmokeNow', 'collinear with AgeRegMarij', 'redundant with AgeRegMarij, the two might be swapped', 'redundant with Marijuana', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'Redundant with PhysActiveDays', 'redundant with TVHrsDay', 'redundant with CompHrsDay', 'collinear with TotChol', 'redundant with Diabetes', 'collinear with UrineVol1', 'collinear with UrineVol1', 'collinear with UrineVol1', 'redundant with HealthGen', 'redundant with HealthGen', 'redundant with HealthGen'))
 
-df_keep = data.frame(predictor = c('SurveyYr', 'Age', 'Age1stBaby', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'nPregnancies'))
+df_keep = data.frame(predictor = c('SurveyYr', 'Age', 'Age1stBaby', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'nPregnancies',  'Poverty', 'SleepHrsNight' ))
 #kable(df_exclude)
-
-#Discuss if these are others we want to keep:
-# need to convert to factor: Gender, Race1, SexOrientation, Education, MaritalStatus, SleepTrouble
-# Poverty, Pulse
-# Testosterone (Reported for participants aged 6 years or older. Not available for 2009-2010.)
-# SleepHrsNight
-#Added SurveyYr
 ```
 
 ### Selected and reduced data sets
@@ -153,6 +146,12 @@ nhanes_select$TVHrsDay = as.factor(nhanes_select$TVHrsDay)
 nhanes_select$CompHrsDay = as.factor(nhanes_select$CompHrsDay)
 nhanes_select$HealthGen = as.factor(nhanes_select$HealthGen)
 nhanes_select$LittleInterest = as.factor(nhanes_select$LittleInterest)
+#nhanes_select$Gender = as.factor(nhanes_select$Gender)
+#nhanes_select$Race1 = as.factor(nhanes_select$Race1)
+#nhanes_select$Education = as.factor(nhanes_select$Education)
+#nhanes_select$MaritalStatus = as.factor(nhanes_select$MaritalStatus)
+#nhanes_select$SleepTrouble = as.factor(nhanes_select$SleepTrouble)
+
 ```
 
 
@@ -283,7 +282,7 @@ After calculating the LOOCV RMSE, we see that the model chosen using BIC perform
 ## Where to go from here
 
 * The `nhanes_redux` is really tiny. We want to think about a better strategy for dealing with NAs rather than just omitting 99% of the data. 
-* We can try including some other predictor variables listed in the Data selection area.
 * Once we can fit `nhanes_select_clean` we can run step-wise search again to find a reasonably good model and do the linear model tests as above again. 
+* Note:  adding 'Gender', 'Race1',  'Education', 'MaritalStatus', 'SleepTrouble', 'Pulse' was resulting in an adjusted R-squared of 1, and loocv_rmse = Inf in the final models. If we want, we can re-try adding them or a couple of them again to see what this is happening in more detail and why.
 * We could also then check for partial correlation for some predictors (with high VIF?). 
 * ...
