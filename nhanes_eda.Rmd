@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
 ```
 
+
 ## Loading Data
 
 Loading the NHANES data for exploration. 
@@ -54,6 +55,7 @@ Colinearity is not as clear in this case, but one predictor related to alcohol c
 ```{r, fig.asp=1}
 to_test = c("SmokeNow", "Smoke100", "SmokeAge", "Marijuana", "RegularMarij", "AgeRegMarij", "HardDrugs")
 pairs(subset(NHANES, select = to_test))
+
 ```
 
 Most of these predictors are categorical, so colinearity can not be seen, except for `SmokeAge` and `AgeRegMarij`. The latter makes sense as this drug is usually consumed via smoking. We can thus use one as a proxy for the other. Let's keep `SmokeNow` and `HardDrugs` as proxies for drug abuse and its potential effect on BMI. 
@@ -109,7 +111,7 @@ Again, colinearity is not easy to spot in categorical variables. Let's pick `Lit
 df_exclude = data.frame(predictor = c('Weight', 'Height', 'AgeDecade', 'AgeMonth', 'AgeRegMarij', 'Alcohol12PlusYr', 'AlcoholDay', 'Smoke100', 'SmokeAge', 'Marijuana', 'RegularMarij', "BPDia1", "BPDia2", "BPDia3", "BPSys1", "BPSys2", "BPSys3", 'PhysActive', 'TVHrsDayChild', 'CompHrsDayChild', 'DirectChol', 'DiabetesAge', "UrineFlow1", "UrineVol2", "UrineFlow2", "DaysPhysHlthBad", "DaysMentHlthBad", "Depressed"), 
                         reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 'colinear with Age', 'colinear with Age', 'redundant with Marijuana', 'more sparse than AlcoholYear', 'redundant with AlcoholYear', 'redundant with SmokeNow', 'colinear with AgeRegMarij', 'redundant with AgeRegMarij, the two might be swapped', 'redundant with Marijuana', 'colinear with other blood pressure predictors', 'colinear with other blood pressure predictors', 'colinear with other blood pressure predictors', 'colinear with other blood pressure predictors', 'colinear with other blood pressure predictors', 'colinear with other blood pressure predictors', 'Redundant with PhysActiveDays', 'redundant with TVHrsDay', 'redundant with CompHrsDay', 'colinear with TotChol', 'redundant with Diabetes', 'colinear with UrineVol1', 'colinear with UrineVol1', 'colinear with UrineVol1', 'redundant with HealthGen', 'redundant with HealthGen', 'redundant with HealthGen'))
 df_keep = data.frame(predictor = c('Age', 'Age1stBaby', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'nPregnancies'))
-kable(df_exclude)
+#kable(df_exclude)
 
 
 ```
@@ -155,6 +157,27 @@ Now it might be handy to have a mini dataset which is devoid of NAs. We can alwa
 nhanes_redux = na.omit(nhanes_select)
 n = nrow(nhanes_redux)
 n
+```
+#Which variables have majority Nan values
+
+```{r}
+
+my_matrix = as.matrix(nhanes_select)
+
+# Count the NA values in each column
+na_counts = colSums(is.na(my_matrix))
+
+# Calculate the percentage of NA values in each column
+total_rows = nrow(my_matrix)
+na_percentage = (na_counts / total_rows) * 100
+
+# Create a data frame to store the results
+na_summary = data.frame(Column = names(na_counts), NA_Count = na_counts, NA_Percentage = na_percentage)
+
+# Print the summary
+print(na_summary)
+
+
 ```
 
 This is very reduced at only `r n` rows! 
