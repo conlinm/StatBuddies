@@ -107,11 +107,9 @@ pairs(subset(NHANES, select = to_test))
 
 Again, collinearity is not easy to spot in categorical variables. Let's pick `LittleInterest` as a mild form of mental health issue (which might lead to little physical activity and obesity) and `HealthGen` as a general health rating. 
 
-10. We decided to keep `Race1` and drop `Race3`, as they both capture the race of the study participant, and `Race3` data is not available for 2009-10. **review this at the meeting**
+10. We decided to keep `Poverty` which is a ratio of family income to poverty guidelines, and drop `HHIncomeMid` and `HHIncome`, as they both capture similar information to what the `Poverty` variable captures. 
 
-11. We decided to keep `Poverty` which is a ratio of family income to poverty guidelines, and drop `HHIncomeMid` and `HHIncome`, as they both capture similar information to what the `Poverty` variable captures. **review this at the meeting**
-
-12. Finally, let's add `nPregnancies`, `Poverty` and `SleepHrsNight` as they has an effect on body mass.  
+11. Finally, let's add `nPregnancies`, `Poverty` and `SleepHrsNight` as we believe they can have an effect on BMI.  
 
 ```{r }
 #Setting up the data frames with the variables we will be excluding and keeping for model building
