@@ -114,11 +114,11 @@ Again, collinearity is not easy to spot in categorical variables. Let's pick `Li
 ```{r }
 #Setting up the data frames with the variables we will be excluding and keeping for model building
 
-df_exclude = data.frame(predictor = c('Weight', 'Height', 'AgeDecade', 'AgeMonth', 'AgeRegMarij', 'Alcohol12PlusYr', 'AlcoholDay', 'Smoke100', 'SmokeAge', 'Marijuana', 'RegularMarij', "BPDia1", "BPDia2", "BPDia3", "BPSys1", "BPSys2", "BPSys3", 'PhysActive', 'TVHrsDayChild', 'CompHrsDayChild', 'DirectChol', 'DiabetesAge', "UrineFlow1", "UrineVol2", "UrineFlow2", "DaysPhysHlthBad", "DaysMentHlthBad", "Depressed"), 
-                        reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 'collinear with Age', 'collinear with Age', 'redundant with Marijuana', 'more sparse than AlcoholYear', 'redundant with AlcoholYear', 'redundant with SmokeNow', 'collinear with AgeRegMarij', 'redundant with AgeRegMarij, the two might be swapped', 'redundant with Marijuana', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'Redundant with PhysActiveDays', 'redundant with TVHrsDay', 'redundant with CompHrsDay', 'collinear with TotChol', 'redundant with Diabetes', 'collinear with UrineVol1', 'collinear with UrineVol1', 'collinear with UrineVol1', 'redundant with HealthGen', 'redundant with HealthGen', 'redundant with HealthGen'))
+df_exclude = data.frame(predictor = c('Weight', 'Height', 'Age1stBaby', 'AgeDecade', 'AgeMonth', 'AgeRegMarij', 'Alcohol12PlusYr', 'AlcoholDay', 'Smoke100', 'SmokeAge', 'Marijuana', 'RegularMarij', "BPDia1", "BPDia2", "BPDia3", "BPSys1", "BPSys2", "BPSys3", 'PhysActive', 'TVHrsDayChild', 'CompHrsDayChild', 'DirectChol', 'DiabetesAge', "UrineFlow1", "UrineVol2", "UrineFlow2", "DaysPhysHlthBad", "DaysMentHlthBad", "Depressed"), 
+                        reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 'redundant with nPregnancies and many NAs', 'collinear with Age', 'collinear with Age', 'redundant with Marijuana', 'more sparse than AlcoholYear', 'redundant with AlcoholYear', 'redundant with SmokeNow', 'collinear with AgeRegMarij', 'redundant with AgeRegMarij, the two might be swapped', 'redundant with Marijuana', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'Redundant with PhysActiveDays', 'redundant with TVHrsDay', 'redundant with CompHrsDay', 'collinear with TotChol', 'redundant with Diabetes', 'collinear with UrineVol1', 'collinear with UrineVol1', 'collinear with UrineVol1', 'redundant with HealthGen', 'redundant with HealthGen', 'redundant with HealthGen'))
 
-df_keep = data.frame(predictor = c('SurveyYr', 'Age', 'Age1stBaby', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'nPregnancies',  'Poverty', 'SleepHrsNight' ))
-#kable(df_exclude)
+df_keep = data.frame(predictor = c('SurveyYr', 'Age', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'nPregnancies',  'Poverty', 'SleepHrsNight' ))
+kable(df_exclude)
 ```
 
 ### Selected and reduced data sets
@@ -173,11 +173,14 @@ n
 
 This is very reduced at only `r n` rows! 
 
-#Which variables have majority Nan values
+### Which variables have majority Nan values
 
+The table below is sorted according to NA percentage in descending order. 
+The top 5 predictors as far as NAs are concerned are: `nPregnancies`, `SmokeNow`, `PhysActiveDays`, `Marijuana`, `HardDrugs`. When applying data imputation strategies, these five would give us the most return on the invested effort. 
 ```{r}
-
-my_matrix = as.matrix(nhanes_select)
+library(tidyverse)
+idx_2011_12 = nhanes_select$SurveyYr=='2011_12'
+my_matrix = as.matrix(nhanes_select[idx_2011_12, ])
 
 # Count the NA values in each column
 na_counts = colSums(is.na(my_matrix))
@@ -188,11 +191,80 @@ na_percentage = (na_counts / total_rows) * 100
 
 # Create a data frame to store the results
 na_summary = data.frame(Column = names(na_counts), NA_Count = na_counts, NA_Percentage = na_percentage)
+na_summary = na_summary %>%
+  arrange(desc(NA_Percentage))
 
 # Print the summary
 print(na_summary)
 
 ```
+### Data imputation
+
+#### Remove NAs in `SmokeNow`
+
+For some predictors we can impute data by utilizing information from the documentation or codebook. 
+`SmokeNow` is explained as `Study participant currently smokes cigarettes regularly. Reported for participants aged 20 years or older as Yes or No, provieded they answered Yes to having somked 100 or more cigarettes in their life time. All subjects who have not smoked 100 or more cigarettes are listed as NA here.`. 
+This means `Yes` stands for person has smoked > 100 cigarettes in his/her lifetime and is still a smoker. `No` means the person used to smoke (> 100 cigarettes in lifetime), but is not currently smoking. The others are listed as `NA`. We interpret this NA hence as someone who smoked < 100 cigerattes in his/her lifetime. Therefore we can introduce a new category and re-label `NA` in this columns as `Never` for someone who never smoked. 
+
+
+```{r}
+nhanes_select_imp = nhanes_select
+nhanes_select_imp$SmokeNow = factor(nhanes_select_imp$SmokeNow, levels = c(levels(nhanes_select_imp$SmokeNow), "Never")) # New level
+smokenow_is_na = is.na(nhanes_select_imp$SmokeNow) # index to all NAs
+nhanes_select_imp$SmokeNow[smokenow_is_na] = 'Never' # Convert all NAs to 'Never'
+sum(is.na(nhanes_select_imp$SmokeNow))
+```
+
+We successfully replace all `NA`s in `SmokeNow` by the level `Never`. This extended the number of rows without `NA` to `r nrow(na.omit(nhanes_select_imp))`. 
+
+#### Remove NAs in `TVHrsDay` and `CompHrsDay`
+
+The documentation says that this variable was not reported for the survey period 2009-2010. Conversely, `TVHrsDayChild` was reported during  the survey period 2011-2012 only. If we decided to merge them into one column we could drastically increase the number of data points. The implications of this shall be discussed in the last part of this report. 
+With the same logic we can merge `CompHrsDay` and `CompHrsDayChild`. 
+
+Unfortunately, to make our taks a little harder, the two survey periods also use slightly different levels.
+While the period 2009-2010 used the levels `r levels(as.factor(NHANES$TVHrsDayChild))`, the other period 2011-2012 used `r levels(nhanes_select$TVHrsDay)`. 
+We do the following mapping: Levels "5" and "6" from 2009-2010 map to "More_4_hr". A level between 0 and 1 hours does not exist in 2011-2012, so we map "0_to_1_hr" to "0_hrs", thus treating this level as no screen time. 
+
+Unfortunately, the older datasets have many missing values as well:
+
+```{r}
+sum(is.na(NHANES$TVHrsDayChild[idx_2009_10]))
+sum(is.na(NHANES$CompHrsDayChild[idx_2009_10]))
+```
+
+So, let's not do it. 
+
+```{r}
+#idx_2009_10 = nhanes_select$SurveyYr=="2009_10"
+#idx_2011_12 = nhanes_select$SurveyYr=="2011_12"
+
+# Merging two columns of TV consumption
+#tvHrsDayChild = as.factor(NHANES$TVHrsDayChild)
+#tvHrsDayChild["0"] = "0_hrs"
+#tvHrsDayChild["1"] = "1_hrs"
+#tvHrsDayChild[""] = "0_hrs"
+#nhanes_select_imp$TVHrsDay[idx_2009_10] = NHANES$TVHrsDayChild[idx_2009_10]
+
+# Merging two columns of computer consumption
+#nhanes_select_imp$CompHrsDay[idx_2011_12] = NHANES$CompHrsDayChild[idx_2011_12]
+```
+
+
+```{r}
+# Want to see what new model looks like with more data ??
+nhanes_select = nhanes_select_imp
+nhanes_redux = na.omit(nhanes_select) #removing missing values
+
+nhanes_redux = nhanes_redux[nhanes_redux$SurveyYr == '2011_12', ] #filtering by year
+nhanes_redux = subset(nhanes_redux, select = -c(SurveyYr)) #removing SurveyYr as a column for model building
+
+#View(nhanes_redux)
+
+n = nrow(nhanes_redux)
+n
+```
+
 
 ## Model building
 
@@ -223,7 +295,7 @@ plot(fitted(fit_redux), resid(fit_redux), col = "darkblue", pch = 20,
 abline(h=0,col = "darkorange")
 ```
 
-Fitted-residuals plot reveals no obvious deviation from homoskedasticity (arguably we are looking at a very small subset!). However, the p.value of the BP-test, to check for the constant variance assumption, is somewhat suspicious. The Shapiro-Wilk test does not appear suspicious, suggesting that the normality assumption is not violated. 
+Fitted-residuals plot reveals some deviation from homoskedasticity (arguably we are looking at a very small subset!). However, the p.value of the BP-test, to check for the constant variance assumption, is suspicious. The Shapiro-Wilk test does appear suspicious, suggesting that the normality assumption is violated. 
 
 ```{r, fig.asp=1}
 #Normal Q-Q Plot
@@ -276,6 +348,13 @@ summary(fit_red_sel_bic)
 calc_loocv_rmse(fit_red_sel_bic) #Calculating the LOOCV RMSE
 ```
 After calculating the LOOCV RMSE, we see that the model chosen using BIC performs the best. It is therefore both the best model for prediction, as it has the best LOOCV RMSE and also the best model for explanation, as it is the smallest.
+
+## Discussion
+
+### Wild collection of possible discussion topics t.b.d.
+
+* Treatment of NA in `SmokeNow`. Might introduce bias for those, who didn't answer the question as someone who never smoked. 
+* Merging `TVHrsDay` with `TVHrsDayChild` introduces a slight bias. Both report hours of TV consumption as per the last 30 days. While `TVHrsDayChild` stops at age 11, `TVHrsDay` does not.  
 
 ## Where to go from here
 
