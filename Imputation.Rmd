@@ -201,6 +201,33 @@ anova(model_with, model_without)
 
 With a p-value greater than 0.01, we can safely remove nPregnacies.
 
+### Summary table of 5 models fitted so far
+
+```{r}
+library(lmtest)
+calc_loocv_rmse = function(model) {
+  sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+
+fit_summary <- data.frame(adj_r_squared = rep(0, 5), loocv_rmse = rep(0, 5), bptest_p = rep(1,5))
+for (i in seq(1,5)) {
+  fit_summary$adj_r_squared[i] = summary(fit$analyses[[i]])$adj
+  fit_summary$loocv_rmse[i] = calc_loocv_rmse(fit$analyses[[i]]) 
+  fit_summary$bptest_p[i] = unname(bptest(fit$analyses[[i]])$p.value)
+  kable(data.frame(summary(fit$analyses[[i]])$coefficients[, "Estimate"]))
+}
+kable(fit_summary)
+```
+
+```{r}
+kable(data.frame(summary(fit$analyses[[1]])$coefficients))
+kable(data.frame(summary(fit$analyses[[2]])$coefficients))
+kable(data.frame(summary(fit$analyses[[3]])$coefficients))
+kable(data.frame(summary(fit$analyses[[4]])$coefficients))
+kable(data.frame(summary(fit$analyses[[5]])$coefficients))
+```
+
+
 
 ### Consider log transformations of numerical measurements
 
