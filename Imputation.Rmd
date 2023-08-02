@@ -101,10 +101,15 @@ Here we will perform the imputation. Given the size of the data, this will take 
 
 ```{r}
 library(mice)
+# remove the rows which have NAs for BMI
+nhanes_imp = nhanes_select[!is.na(nhanes_select$BMI), ]
+nrow(nhanes_imp)
+nrow(nhanes_select)
 # perform the multiple imputation (5 datasets)
-imp = mice(nhanes_select, seed = 420, m = 5, print = FALSE)
-# Compare the imputed variables red) and observed (blue)
+imp = mice(nhanes_imp, seed = 420, m = 5, print = FALSE)
+# Compare the imputed variables (red) and observed (blue)
 densityplot(imp)
+summary(imp)
 ```
 
 Now we build and run the stepwise process to select predictors. Notice that our 5 datasets with observed and imputed data are passed to the stepwise function using `with()` which in this case returns a `mira` object from the `mice` package.
@@ -145,10 +150,10 @@ model_without = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAv
                        HealthGen + nPregnancies + PhysActiveDays  + Race1 +
                        SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
                        Age:Diabetes + Age:nPregnancies + Age:SmokeNow))
-anova(model_with, model_without)
+anova(model_without, model_with)
 ```
 
-The p-value suggests that Age:HealthGen is worth keeping.
+The p-value suggests that Age:HealthGen is not worth keeping.
 
 ```{r}
 # remove Age:nPregnancies
@@ -156,16 +161,16 @@ model_with = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve +
                        BPSysAve + BPSysAve + CompHrsDay + Diabetes + HardDrugs + 
                        HealthGen + nPregnancies + PhysActiveDays  + Race1 +
                        SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
-                       Age:Diabetes + Age:HealthGen + Age:nPregnancies + Age:SmokeNow))
+                       Age:Diabetes + Age:nPregnancies + Age:SmokeNow))
 model_without = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
                        BPSysAve + BPSysAve + CompHrsDay + Diabetes + HardDrugs + 
                        HealthGen + nPregnancies + PhysActiveDays  + Race1 +
                        SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
-                       Age:Diabetes + Age:HealthGen + Age:SmokeNow))
-anova(model_with, model_without)
+                       Age:Diabetes + Age:SmokeNow))
+anova(model_without, model_with)
 ```
 
-With a p-value of greater than 0.01, lets remove Age:nPregnancies
+With a p-value of less than 0.01, lets keep Age:nPregnancies
 
 ```{r}
 # remove HardDrugs
@@ -173,13 +178,13 @@ model_with = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve +
                        BPSysAve + BPSysAve + CompHrsDay + Diabetes + HardDrugs + 
                        HealthGen + nPregnancies + PhysActiveDays  + Race1 +
                        SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
-                       Age:Diabetes + Age:HealthGen + Age:SmokeNow))
+                       Age:Diabetes + Age:HealthGen + Age:nPregnancies + Age:SmokeNow))
 model_without = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
                        BPSysAve + BPSysAve + CompHrsDay + Diabetes + 
                        HealthGen + nPregnancies + PhysActiveDays  + Race1 +
                        SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
-                       Age:Diabetes + Age:HealthGen + Age:SmokeNow))
-anova(model_with, model_without)
+                       Age:Diabetes + Age:HealthGen+ Age:nPregnancies  + Age:SmokeNow))
+anova(model_without, model_with)
 ```
 
 It also seems that HardDrugs is not needed in our model.
@@ -196,7 +201,7 @@ model_without = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAv
                        HealthGen + PhysActiveDays  + Race1 +
                        SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
                        Age:Diabetes + Age:HealthGen + Age:SmokeNow))
-anova(model_with, model_without)
+anova(model_without, model_with)
 ```
 
 With a p-value greater than 0.01, we can safely remove nPregnacies.
