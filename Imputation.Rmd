@@ -1,0 +1,271 @@
+---
+title: "Imputation of NHANES Data and Model Selection"
+author: "Michael Conlin"
+date: "2023-08-01"
+output: html_document
+---
+
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
+options(scipen = 1, digits = 4, width = 80, fig.align = "center")
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+```
+
+
+## Loading Data
+
+Loading the NHANES data for exploration. 
+
+```{r cars}
+library(NHANES)
+# head(NHANES)
+```
+
+
+### Variable Selection
+
+
+A look at changing Marijuana to RegularMarijuana and nPregnancies to nBabies:
+
+```{r}
+fit_null = lm(BMI ~ Age + Age1stBaby + AlcoholYear + Marijuana + 
+    BPSysAve + UrineVol1 + nPregnancies + Poverty + SleepHrsNight + 
+    Age:Age1stBaby + Age:AlcoholYear + Age:BPSysAve + Age:UrineVol1 + 
+    Age:nPregnancies + Age:SleepHrsNight, 
+  data = NHANES)
+fit_change = lm(BMI ~ Age + Age1stBaby + AlcoholYear + RegularMarij + 
+    BPSysAve + UrineVol1 + nBabies + Poverty + SleepHrsNight + 
+    Age:Age1stBaby + Age:AlcoholYear + Age:BPSysAve + Age:UrineVol1 + 
+    Age:nBabies + Age:SleepHrsNight, 
+  data = NHANES)
+summary(fit_null)
+summary(fit_change)
+```
+
+The model is stronger with the original variable, so I will keep those.
+
+Assessment of LittleInterest vs Depressed
+
+```{r}
+table(NHANES$LittleInterest, NHANES$Depressed)
+```
+
+These seem to correlate strongly, so no advantage to changing
+
+#### Add in additional possible helpful Variables
+
+I added in Gender, Race1, Education, and MartialStatus.  
+
+```{r}
+df_keep = data.frame(predictor = c('SurveyYr', 'Age', 'Age1stBaby', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'nPregnancies',  'Poverty', 'SleepHrsNight', 'Gender', 'Race1', 'Education', 'MaritalStatus' ))
+```
+
+
+```{r}
+nhanes_select = subset(NHANES, select =c(df_keep$predictor, "BMI"))
+nrow(NHANES)
+ncol(NHANES)
+nrow(nhanes_select)
+ncol(nhanes_select)
+```
+
+We need to know which ones are categorical and turn them into factors
+
+```{r}
+nhanes_select$Marijuana = as.factor(nhanes_select$Marijuana)
+nhanes_select$SmokeNow = as.factor(nhanes_select$SmokeNow)
+nhanes_select$HardDrugs = as.factor(nhanes_select$HardDrugs)
+nhanes_select$Diabetes = as.factor(nhanes_select$Diabetes)
+nhanes_select$TVHrsDay = as.factor(nhanes_select$TVHrsDay)
+nhanes_select$CompHrsDay = as.factor(nhanes_select$CompHrsDay)
+nhanes_select$HealthGen = as.factor(nhanes_select$HealthGen)
+nhanes_select$LittleInterest = as.factor(nhanes_select$LittleInterest)
+nhanes_select$Gender = as.factor(nhanes_select$Gender)
+nhanes_select$Race1 = as.factor(nhanes_select$Race1)
+nhanes_select$Education = as.factor(nhanes_select$Education)
+nhanes_select$MaritalStatus = as.factor(nhanes_select$MaritalStatus)
+
+
+```
+
+
+### Multiple Imputation of Data with `mice` Package
+
+```{r eval=FALSE}
+if (!require(mice)) {
+  install.packages("mice")  
+}
+```
+
+Here we will perform the imputation. Given the size of the data, this will take a bit of processing time.
+
+```{r}
+library(mice)
+# perform the multiple imputation (5 datasets)
+imp = mice(nhanes_select, seed = 420, m = 5, print = FALSE)
+# Compare the imputed variables red) and observed (blue)
+densityplot(imp)
+```
+
+Now we build and run the stepwise process to select predictors. Notice that our 5 datasets with observed and imputed data are passed to the stepwise function using `with()` which in this case returns a `mira` object from the `mice` package.
+```{r}
+# build the stepwise workflow
+scope <- list(upper = ~ Age +  Age1stBaby +  AlcoholYear +  Marijuana +  SmokeNow +  HardDrugs +  BPDiaAve +  BPSysAve +  PhysActiveDays +  TVHrsDay +  CompHrsDay +  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +  nPregnancies +   Poverty +  SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus + Age:Age1stBaby +  Age:AlcoholYear +  Age:Marijuana +  Age:SmokeNow +  Age:HardDrugs +  Age:BPDiaAve +  Age:BPSysAve +  Age:PhysActiveDays  +  Age:CompHrsDay +  Age:TotChol +  Age:Diabetes +  Age:UrineVol1 +  Age:HealthGen +  Age:LittleInterest +  Age:nPregnancies +   Age:Poverty +  Age:SleepHrsNight +  Age:Gender +  Age:Race1 +  Age:Education +  Age:MaritalStatus,
+             lower = ~ 1)
+expr <- expression(f1 <- lm(log(BMI) ~ 1),
+                  f2 <- step(f1, scope = scope, k = log(nrow(nhanes_select)), trace = 0))
+# perform the stepwise selection with each of the 5 imputed datasets
+fit <- with(imp, expr)
+
+# count the votes for variables to keep
+formulas <- lapply(fit$analyses, formula)
+terms <- lapply(formulas, terms)
+votes <- unlist(lapply(terms, labels))
+table(votes)
+```
+
+If we use the criterion of more than half of the datasets resulted in selection of a variable, we end up with:
+
+lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
+                       BPSysAve + BPSysAve + CompHrsDay + Diabetes + HardDrugs + 
+                       HealthGen + nPregnancies + PhysActiveDays  + Race1 +
+                       SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
+                       Age:Diabetes + Age:HealthGen + Age:nPregnancies + Age:SmokeNow
+
+Lets see if we can trim out the variables with the lower vote counts (not selected with each imputed dataset)
+```{r}
+# remove Age:HealthGen
+model_with = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
+                       BPSysAve + BPSysAve + CompHrsDay + Diabetes + HardDrugs + 
+                       HealthGen + nPregnancies + PhysActiveDays  + Race1 +
+                       SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
+                       Age:Diabetes + Age:HealthGen + Age:nPregnancies + Age:SmokeNow))
+model_without = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
+                       BPSysAve + BPSysAve + CompHrsDay + Diabetes + HardDrugs + 
+                       HealthGen + nPregnancies + PhysActiveDays  + Race1 +
+                       SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
+                       Age:Diabetes + Age:nPregnancies + Age:SmokeNow))
+anova(model_with, model_without)
+```
+
+The p-value suggests that Age:HealthGen is worth keeping.
+
+```{r}
+# remove Age:nPregnancies
+model_with = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
+                       BPSysAve + BPSysAve + CompHrsDay + Diabetes + HardDrugs + 
+                       HealthGen + nPregnancies + PhysActiveDays  + Race1 +
+                       SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
+                       Age:Diabetes + Age:HealthGen + Age:nPregnancies + Age:SmokeNow))
+model_without = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
+                       BPSysAve + BPSysAve + CompHrsDay + Diabetes + HardDrugs + 
+                       HealthGen + nPregnancies + PhysActiveDays  + Race1 +
+                       SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
+                       Age:Diabetes + Age:HealthGen + Age:SmokeNow))
+anova(model_with, model_without)
+```
+
+With a p-value of greater than 0.01, lets remove Age:nPregnancies
+
+```{r}
+# remove HardDrugs
+model_with = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
+                       BPSysAve + BPSysAve + CompHrsDay + Diabetes + HardDrugs + 
+                       HealthGen + nPregnancies + PhysActiveDays  + Race1 +
+                       SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
+                       Age:Diabetes + Age:HealthGen + Age:SmokeNow))
+model_without = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
+                       BPSysAve + BPSysAve + CompHrsDay + Diabetes + 
+                       HealthGen + nPregnancies + PhysActiveDays  + Race1 +
+                       SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
+                       Age:Diabetes + Age:HealthGen + Age:SmokeNow))
+anova(model_with, model_without)
+```
+
+It also seems that HardDrugs is not needed in our model.
+
+```{r}
+# remove nPregnancies
+model_with =with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
+                       BPSysAve + BPSysAve + CompHrsDay + Diabetes + 
+                       HealthGen + nPregnancies + PhysActiveDays  + Race1 +
+                       SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
+                       Age:Diabetes + Age:HealthGen + Age:SmokeNow))
+model_without = with(imp, lm(log(BMI) ~ Age + Age1stBaby + AlcoholYear + BPDiaAve + 
+                       BPSysAve + BPSysAve + CompHrsDay + Diabetes + 
+                       HealthGen + PhysActiveDays  + Race1 +
+                       SmokeNow + TVHrsDay + Age:BPDiaAve + Age:BPSysAve +
+                       Age:Diabetes + Age:HealthGen + Age:SmokeNow))
+anova(model_with, model_without)
+```
+
+With a p-value greater than 0.01, we can safely remove nPregnacies.
+
+
+### Consider log transformations of numerical measurements
+
+BMI
+
+```{r}
+par(mfrow=c(1,2))
+hist(NHANES$BMI,
+     main = "Histogram - BMI",
+     xlab = "BMI")
+hist(log(NHANES$BMI),
+     main = "Histogram - Log(BMI)",
+     xlab = "Log(BMI)")
+```
+
+BPSysAve
+
+```{r}
+par(mfrow=c(1,2))
+hist(NHANES$BPSysAve,
+     main = "Histogram - BPSysAve",
+     xlab = "BPSysAve")
+hist(log(NHANES$BPSysAve),
+     main = "Histogram - Log(BPSysAve)",
+     xlab = "Log(BPSysAve)")
+```
+BPDiasAve
+
+```{r}
+par(mfrow=c(1,2))
+hist(NHANES$BPDiaAve,
+     main = "Histogram - BPDiaAve",
+     xlab = "BPDiaAve")
+hist((NHANES$BPDiaAve)^2,
+     main = "Histogram - BPDiaAve^2",
+     xlab = "BPDiaAve^2")
+```
+
+TotChol
+
+```{r}
+par(mfrow=c(1,2))
+hist(NHANES$TotChol,
+     main = "Histogram - TotChol",
+     xlab = "TotChol")
+hist(log(NHANES$TotChol),
+     main = "Histogram - TotChol",
+     xlab = "TotChol")
+```
+```{r}
+par(mfrow=c(1,2))
+hist(NHANES$SleepHrsNight,
+     main = "Histogram - SleepHrsNight",
+     xlab = "SleepHrsNight")
+hist(log(NHANES$SleepHrsNight),
+     main = "Histogram - SleepHrsNight",
+     xlab = "SleepHrsNight")
+```
+
+```{r}
+hist((NHANES$Poverty))
+```
+
+#### Conclusions
+
+Based on the above findings, we may want to log transform BPSysAve, and TotChol, and consider a square transform of BPDiaAve. I think SleepHrsNight is best left alone, and I do not know what to make of the Poverty levels.
+
+
