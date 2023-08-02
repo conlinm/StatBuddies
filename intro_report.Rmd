@@ -1,0 +1,36 @@
+---
+title: "Intro_report"
+author: "constantinkappel"
+date: "2023-08-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+```
+
+```{r}
+library(NHANES)
+```
+
+
+## Introduction
+
+Obesity is an endemic health issue common to many industrialized nations in the world. It is known that obesity is related to cardiovascular disease (high blood pressure, heart attack, stroke), type II diabetes, sleep apnea, metabolic syndrome, fatty liver disease and cancer [CDC on obesity](https://www.cdc.gov/healthyweight/effects/index.html). According to the World Health Organization, [WHO](https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight), obesity has nearly tripled between 1975 and 2021, in a time frame of less than two generations. Obesity can be measured by the BMI, is therefore a relevant health issue. The threshold of calling someone obese is a BMI $\geq$ 30.   
+
+Our personal interest in obesity is for once that two members of this team have a background in biochemistry and medicine, respectively, and that still obesity represents a health issue which everyone knows and can observe in everyday life. So, while there is a bio-medical relevance of the topic, the concept of BMI or the phenomenon of obesity do not require everyone to have a deep domain-specific knowledge. In fact, none of us directly worked scientifically with obesity before and thus we saw it as a new and challenging topic to work on. 
+
+We are using the "the non-institutionalized civilian resident population of the United States" (NHANES) dataset. It has been published by the *American National Health and Nutrition Examination surveys" since the 1960s. The full data thus covers the relevant time frame which saw the drastic increase in obesity as reported by the WHO. The full data can be obtained from [CDC.gov](http://www.cdc.gov/nchs/nhanes.htm). 
+We are using a subset of NHANES which is easily accessible through the R library `NHANES`. It comprises a subset of 10,000 rows and covers a survey period between 2009 and 2012. While not comprehensive it should give us enough material to build a model, select different predictors and reason about its predictions. Our goal is to build an interpretable model which identifies and quantifies the influence of several physical and life style-related predictors on body weight, specifically the BMI.
+
+In order to build an interpretable model we need to be mindful with non-linear data transformations, high-order interactions and also need to keep variance inflation under control. The task is made challenging by a large number of missing values. If we simply omit all `NA`s using `na.omit()`, which discards all rows with any missing value, we will reduce the total information from 10,000 to `r nrow(na.omit(NHANES))`, so less than 1%. 
+
+Our strategy outline for approaching this project is as follows:
+
+1. Variable (i.e. predictor) selection using a combination of semantic grouping (some variables convey similar information) and colinearity (visually, through `pairs()` plots). 
+1. With a subset of predictors, which we call `nhanes_select` and omitting all `NA`s we build a first reduced model to check parameter estimates, p-values, significance of regression as well as testing LINE assumptions. 
+1. We then approach the problem of missing data by using multivariate imputation by chained equations [MICE](https://doi.org/10.18637/jss.v045.i03) using the `mice` library by Buuren and Groothuls-Outhoorn (2011).  
+1. With 5 versions of imputed data we rebuild our model and use a stepwise process with AIC to select the parameters and their interactions for our model. 
+1. Lastly, we apply a Box-Cox transformation to BMI and other non-linear transformations to some of the predictors to build a more predictive model. 
+
