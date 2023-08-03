@@ -724,6 +724,7 @@ final_trns
 #### Outlier Assessment
 
 ```{r}
+#finding outliers for each model
 
 indexs_trns = which(cooks.distance(final_trns$analyses[[1]]) > 4 / length(cooks.distance(final_trns$analyses[[1]])))
 
@@ -731,18 +732,15 @@ indexs_int = which(cooks.distance(final_int$analyses[[1]]) > 4 / length(cooks.di
 
 indexs_add = which(cooks.distance(final_add$analyses[[1]]) > 4 / length(cooks.distance(final_add$analyses[[1]])))
 
+
+#removing outliers for each model
+
 imp_df_1 = imp_df[imp_df$.imp == 1, ]
-nrow(imp_df_1)
-
 im_df_1_trns_rm = imp_df_1[-indexs_trns, ]
-nrow(im_df_1_trns)
-
 im_df_1_int_rm = imp_df_1[-indexs_int, ]
-nrow(im_df_1_int)
-
 im_df_1_add_rm = imp_df_1[-indexs_add, ]
-nrow(im_df_1_add)
 ```
+
 ```{r}
 #Final_trns Model fit with outliers removed 
 
