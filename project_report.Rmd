@@ -725,9 +725,52 @@ final_trns
 
 ```{r}
 
-sum(cooks.distance(fit_int_aic_trns$analyses[[3]]) > 4 / length(cooks.distance(fit_int_aic_trns$analyses[[3]])))
+indexs_trns = which(cooks.distance(final_trns$analyses[[1]]) > 4 / length(cooks.distance(final_trns$analyses[[1]])))
+
+indexs_int = which(cooks.distance(final_int$analyses[[1]]) > 4 / length(cooks.distance(final_int$analyses[[1]])))
+
+indexs_add = which(cooks.distance(final_add$analyses[[1]]) > 4 / length(cooks.distance(final_add$analyses[[1]])))
 
 imp_df_1 = imp_df[imp_df$.imp == 1, ]
+nrow(imp_df_1)
+
+im_df_1_trns_rm = imp_df_1[-indexs_trns, ]
+nrow(im_df_1_trns)
+
+im_df_1_int_rm = imp_df_1[-indexs_int, ]
+nrow(im_df_1_int)
+
+im_df_1_add_rm = imp_df_1[-indexs_add, ]
+nrow(im_df_1_add)
+```
+```{r}
+#Final_trns Model fit with outliers removed 
+
+lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  I(BPDiaAve^2) + log1p(BPSysAve) + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) +  Age:log1p(BPSysAve)  + Age:TVHrsDay +  Age:Diabetes +  Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = im_df_1_trns_rm)
+
+```
+
+```{r}
+#Final_int Model fit with outliers removed
+
+lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = im_df_1_int_rm)
+
+```
+
+
+```{r}
+#Final_add Model fit with outliers removed
+
+lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = im_df_1_add_rm)
 
 ```
 
