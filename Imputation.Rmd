@@ -224,6 +224,8 @@ for (i in seq(1,5)) {
 kable(fit_summary)
 ```
 
+
+
 ```{r}
 kable(data.frame(summary(fit$analyses[[1]])$coefficients))
 kable(data.frame(summary(fit$analyses[[2]])$coefficients))
@@ -232,6 +234,53 @@ kable(data.frame(summary(fit$analyses[[4]])$coefficients))
 kable(data.frame(summary(fit$analyses[[5]])$coefficients))
 ```
 
+Functions for diagnostics and model assesments
+
+```{r}
+
+fit_summary <- data.frame(adj_r_squared = rep(0, 5), loocv_rmse = rep(0, 5), bptest_p = rep(1,5), ad_test = rep(0,5))
+for (i in seq(1,5)) {
+  fit_summary$adj_r_squared[i] = summary(fit_add$analyses[[i]])$adj
+  fit_summary$loocv_rmse[i] = calc_loocv_rmse(fit_add$analyses[[i]]) 
+  fit_summary$bptest_p[i] = unname(bptest(fit_add$analyses[[i]])$p.value)
+  ad.test(residuals(fit_add$analyses[[i]]))$p.value # Anderson-Darling test for normal distribution in larger sample sizes (> 5000)
+}
+# model diagnostics
+model_diagnostics = function(fit){
+  fit_summary <- data.frame(bptest_p = rep(0,5), ad_test = rep(0,5))
+  for (i in 1:5){
+    fit_summary$bptest_p[i] = unname(bptest(fit$analyses[[i]])$p.value)
+    ad.test(residuals(fit$analyses[[i]]))$p.value 
+  }
+  kable(fit_summary, col.names = c("BP Test", "AD Test"))
+}
+model_diagnostics(fit_add)
+
+# cooks distance to check for influential observations
+cooks_function = function(fit){
+  cook_thresh = 4 * cooks.distance(fit$analyses[[1]]) / nrow(imp)
+  mean(cooks.distance(fit$analyses[[1]]) > cook_thresh)
+}
+ 
+cooks_function(fit_add)
+
+# Function to calculate the LOOCVRMSE
+calc_loocv_rmse = function(model) {
+  sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+
+# model assessments
+model_assess = function(fit){
+  fit_summary <- data.frame(adj_r_squared = rep(0,5), loocv_rmse = rep(0,5))
+  for (i in 1:5){
+    fit_summary$adj_r_squared[i] = summary(fit$analyses[[i]])$adj
+    fit_summary$loocv_rmse[i] = calc_loocv_rmse(fit$analyses[[i]]) 
+  }
+  kable(fit_summary, col.names = c("Adj. R-Squared", "LOOCV-RMSE"))
+}
+
+model_assess(fit_add)
+```
 
 
 ### Consider log transformations of numerical measurements
