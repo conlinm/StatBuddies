@@ -3,10 +3,10 @@ title: "NHANES Data Analysis Project"
 author: "STAT 420, Summer 2023, Preeti Agrawal, Thimira Bandara, Michael Conlin, Constatin Kappel"
 date: "2023-07-26"
 output:
-  pdf_document: default
   html_document: 
     theme: readable
     toc: yes
+  pdf_document: default
 urlcolor: cyan
 ---
 
@@ -24,7 +24,7 @@ options(scipen = 1, digits = 4, width = 80, fig.align = "center")
 
 ```{r eval=FALSE}
 if (!require(NHANES)) {
-  install.packages("NHANES")  
+  install.packages("NHANES", quiet = TRUE)  
 }
 ```
 
@@ -95,27 +95,369 @@ Again, collinearity is not easy to spot in categorical variables. Let's pick `Li
 df_exclude = data.frame(predictor = c('Weight', 'Height', 'Age1stBaby', 'AgeDecade', 'AgeMonth', 'AgeRegMarij', 'Alcohol12PlusYr', 'AlcoholDay', 'Smoke100', 'SmokeAge', 'Marijuana', 'RegularMarij', "BPDia1", "BPDia2", "BPDia3", "BPSys1", "BPSys2", "BPSys3", 'PhysActive', 'TVHrsDayChild', 'CompHrsDayChild', 'DirectChol', 'DiabetesAge', "UrineFlow1", "UrineVol2", "UrineFlow2", "DaysPhysHlthBad", "DaysMentHlthBad", "Depressed", 'Race3'), 
 reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 'redundant with nPregnancies and many NAs', 'collinear with Age', 'collinear with Age', 'redundant with Marijuana', 'more sparse than AlcoholYear', 'redundant with AlcoholYear', 'redundant with SmokeNow', 'collinear with AgeRegMarij', 'redundant with AgeRegMarij, the two might be swapped', 'redundant with Marijuana', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'Redundant with PhysActiveDays', 'redundant with TVHrsDay', 'redundant with CompHrsDay', 'collinear with TotChol', 'redundant with Diabetes', 'collinear with UrineVol1', 'collinear with UrineVol1', 'collinear with UrineVol1', 'redundant with HealthGen', 'redundant with HealthGen', 'redundant with HealthGen', 'redundant with Race1'))
 
-df_keep = data.frame(predictor = c('SurveyYr', 'Age', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'nPregnancies',  'Poverty', 'SleepHrsNight', 'Gender', 'Race1', 'Education', 'MaritalStatus' ))
+df_keep = data.frame(predictor = c('Age', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'Poverty', 'SleepHrsNight', 'Gender', 'Race1', 'Education', 'MaritalStatus' ))
 knitr::kable(df_keep, caption = "Initial Predictor Selected")
+```
+
+Let's build a dataset `nhanes_select` using just the above `df_keep` variables.
+
+```{r}
+nhanes_select = subset(NHANES, select =c(df_keep$predictor, "BMI"))
+```
+The resulting dataset, after initial variable selection above, consists of `r nrow(nhanes_select)` observations (rows) and `r ncol(nhanes_select)` variables (columns) including `BMI` and the chosen predictors.
+
+
+**Convert Categorical into Factor Variables**
+
+We need to know which ones are categorical and turn them into factors
+
+```{r}
+nhanes_select$Marijuana = as.factor(nhanes_select$Marijuana)
+nhanes_select$SmokeNow = as.factor(nhanes_select$SmokeNow)
+nhanes_select$HardDrugs = as.factor(nhanes_select$HardDrugs)
+nhanes_select$Diabetes = as.factor(nhanes_select$Diabetes)
+nhanes_select$TVHrsDay = as.factor(nhanes_select$TVHrsDay)
+nhanes_select$CompHrsDay = as.factor(nhanes_select$CompHrsDay)
+nhanes_select$HealthGen = as.factor(nhanes_select$HealthGen)
+nhanes_select$LittleInterest = as.factor(nhanes_select$LittleInterest)
+nhanes_select$Gender = as.factor(nhanes_select$Gender)
+nhanes_select$Race1 = as.factor(nhanes_select$Race1)
+nhanes_select$Education = as.factor(nhanes_select$Education)
+nhanes_select$MaritalStatus = as.factor(nhanes_select$MaritalStatus)
 ```
 
 #### Missing Values
 
+It would be helpful to have a dataset which is devoid of NAs (missing values). First let's get a quick idea of how many missing values are present in our initial dataset. 
+
+**Which variables have majority Nan values**
+
+```{r}
+library(tidyverse, quietly = TRUE)
+
+# Count the NA values in each column
+na_counts = colSums(is.na(nhanes_select))
+
+# Calculate the percentage of NA values in each column
+total_rows = nrow(nhanes_select)
+na_percentage = (na_counts / total_rows) * 100
+
+# Create a data frame to store the results
+na_summary = data.frame(Column = names(na_counts), NA_Count = na_counts, NA_Percentage = na_percentage)
+na_summary = na_summary %>%
+  arrange(desc(NA_Percentage))
+
+# Print the summary
+print(na_summary)
+
+```
+
+The table above is sorted according to NA percentage in descending order. 
+The top 5 predictors as far as NAs are concerned are: `nPregnancies`, `SmokeNow`, `PhysActiveDays`, `TVHrsDay`, `CompHrsDay`. Half of all predictors have greater than 25% missing values. If we eliminated all rows with any missing value, we would be left with only `r nrow(na.omit(nhanes_select))`, which is not enough observations to be meaningful. We cannot simply proceed using this data, as any regression tools we will use will need to eliminate many observations in order to proceed with the statistical calculations. It would also be inappropriate to simply eliminate these observations, although this was previously the standard approach. Eliminating this many observations would bring into question how well our study models represent the underlying population. Interpretation of our results would become more difficult, and suspicious of selective observation elimination introducing bias. This data was also costly to produce - we prefer to not simply cast it aside.
+
+Data imputation involves the substitution of missing data with a different value. Although there are simple methods of replacing missing values with the mean or median of the variable in question, the most robust method is multiple imputation. Multiple imputation involves the generation of multiple complete datasets by replacing the missing values with data values which are modeled for each missing entry, from a plausible distribution. The imputation process can use a variety of methods for computing the imputed values, depnding upon the underlying distribution of the observed values, and the relationship of those observed values and the other variables in the observation. Once the multiple complete datasets are generated, any analysis can be performed (such as linear regression) and the results of each analyses are pooled into one set of results.
+
+We will perform the mutiple imputation process with the `mice` package below. More information regarding the `mice` package can be read at the book website [Flexible Imputation of Missing Data](https://stefvanbuuren.name/fimd/)
+
+### Data Imputation with the `mice` Package
+
+```{r eval=FALSE}
+if (!require(mice)) {
+  install.packages("mice", quiet = TRUE)  
+}
+```
+
+Here we will perform the imputation. Given the size of the data, this will take a bit of processing time.
+First we will remove the observations where there is no entry for BMI as there are only `r sum(is.na(nhanes_select$BMI))`, to avoid imputation of our response variable.
 
 
-#### Variable Selection
+```{r}
+library(mice, quietly = TRUE)
+# remove the rows which have NAs for BMI
+nhanes_imp = nhanes_select[!is.na(nhanes_select$BMI), ]
 
-### Model Building
+# perform the multiple imputation (5 datasets)
+imp = mice(nhanes_imp, seed = 420, m = 5, print = FALSE)
 
-#### Stepwise Model Selection
+```
 
-### Model Diagnostics
+See appendix for density plots comparing imputed and observe values.
+
+### Initial Model Building and Diagnostics
+
+First we will build a complete additive model, to allow an initial diagnostic evaluation.
+
+```{r}
+# perform the linear regression with each of the 5 imputed datasets
+fit_add <- with(imp, lm(BMI ~  Age +  AlcoholYear + Marijuana + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus))
+
+summary(fit_add$analyses[[1]])
+```
+Construct a dataframe of all our 5 of our imputed datasets, with the additional values
+added of columns `.imp` for the imputation number, and `.i` for the observation number within that imputation.
+
+```{r}
+imp_df = mice::complete(imp, action = "long")
+```
+
+#### Variance and Normality Assessment
+
+Let's do some tests on this model to identify potential issues.
+
+```{r}
+library(lmtest)
+if (!require(nortest)) {
+  install.packages("nortest", quiet = TRUE)  
+}
+# install.packages("nortest", quiet = TRUE)
+library(nortest, quietly = TRUE)
+
+### First, define some functions ###
+
+# Function to calculate the LOOCVRMSE
+calc_loocv_rmse = function(model) {
+  sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+
+# model diagnostics
+model_diagnostics = function(fit){
+  fit_summary <- data.frame(bptest_p = rep(0,5), ad_test = rep(0,5))
+  for (i in 1:5){
+    fit_summary$bptest_p[i] = unname(bptest(fit$analyses[[i]])$p.value)
+    ad.test(residuals(fit$analyses[[i]]))$p.value 
+  }
+  knitr::kable(fit_summary, col.names = c("BP Test", "AD Test"))
+}
+
+# cooks distance to check for influential observations
+cooks_function = function(fit){
+  cook_thresh = 4 * cooks.distance(fit$analyses[[1]]) / nrow(imp)
+  mean(cooks.distance(fit$analyses[[1]]) > cook_thresh)
+}
+ 
+# model assessments
+model_assess = function(fit){
+  fit_summary <- data.frame(adj_r_squared = rep(0,5), loocv_rmse = rep(0,5))
+  for (i in 1:5){
+    fit_summary$adj_r_squared[i] = summary(fit$analyses[[i]])$adj
+    fit_summary$loocv_rmse[i] = calc_loocv_rmse(fit$analyses[[i]]) 
+  }
+  knitr::kable(fit_summary, col.names = c("Adj. R-Squared", "LOOCV-RMSE"))
+}
+```
+
+```{r, fig.asp=1}
+#Fitted versus Residuals Plot
+plot(fitted(fit_add$analyses[[1]]), resid(fit_add$analyses[[1]]), col = "darkblue", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Fitted versus Residuals Plot")
+abline(h=0,col = "darkorange")
+```
+
+Fitted-residuals plot reveals deviation from homoskedasticity. Also, the p.value of the BP-test, to check for the constant variance assumption, is suspicious. The Shapiro-Wilk test does appear suspicious, suggesting that the normality assumption is violated. 
+
+```{r, fig.asp=1}
+#Normal Q-Q Plot
+qqnorm(resid(fit_add$analyses[[1]]), col = "dodgerblue")
+qqline(resid(fit_add$analyses[[1]]), col = "darkorange")
+```
+
+The Q-Q-Plot might show some deviations from normality. Again, the subset is small making it difficult to establish a pattern.
+
+Let's look at the Shapiro Test for normality, and the Breusch-Pagan Test for Homoscedasticity.
+
+```{r}
+model_diagnostics(fit_add)
+```
+The p-values for these test, using each of the 5 imputed dataset models, are all very low, essentially 0. So we reject the null hypothesis, calling into question, both normality and homoscedasticity. However, both of these tests are susceptable to the influence of large sample sizes, so they may be less reliable in this setting.
+
 
 #### Collinearity
 
-#### Variance Assessment
+In the summary above many parameters had large p-values. Let's check these for variance inflation. 
 
-#### Normality Assessment
+```{r}
+library(car)
+car::vif(fit_add$analyses[[1]])
+```
+
+None of the variable appear to have a large (>5) variance inflation factor. 
+
+Because of the findings above, we will fit a model using the log transformation of the response variable (BMI), and reassess the diagnostics.
+
+```{r}
+# perform the linear regression with each of the 5 imputed datasets
+# and the log() transform of BMI
+fit_add_log <- with(imp, lm(log(BMI) ~  Age +  AlcoholYear + Marijuana + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus))
+
+summary(fit_add_log$analyses[[1]])
+```
+
+```{r, fig.asp=1}
+#Fitted versus Residuals Plot
+#Fitted versus Residuals Plot
+par(mfrow=c(1,2))
+plot(fitted(fit_add$analyses[[1]]), resid(fit_add$analyses[[1]]), col = "darkblue", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Fitted vs Residuals")
+abline(h=0,col = "darkorange")
+plot(fitted(fit_add_log$analyses[[1]]), resid(fit_add_log$analyses[[1]]), col = "darkblue", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Fitted vs Residuals - log(BMI)")
+abline(h=0,col = "darkorange")
+```
+The log transformation of BMI model looks much better, though still not perfect. 
+
+Now the Q-Q plot:
+
+```{r, fig.asp=1}
+#Normal Q-Q Plot
+par(mfrow=c(1,2))
+# no transformation
+qqnorm(resid(fit_add$analyses[[1]]), col = "dodgerblue")
+qqline(resid(fit_add$analyses[[1]]), col = "darkorange")
+# log transformation
+qqnorm(resid(fit_add_log$analyses[[1]]), col = "dodgerblue")
+qqline(resid(fit_add_log$analyses[[1]]), col = "darkorange")
+```
+Again, the log transformation of BMI results in a much better appearing QQ plot. Moving forward, we will use the log transformed BMI for our model building.
+
+#### Stepwise Model Selection
+
+Now we build and run the stepwise process to select predictors. Notice that our 5 datasets with observed and imputed data are passed to the stepwise function using `with()` which in this case returns a `mira` object from the `mice` package.
+
+First we will start with the additive model and perform a stepwise backward AIC model selection.
+```{r}
+# build the stepwise workflow
+scope <- list(upper = ~ Age +  AlcoholYear + Marijuana + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus,
+             lower = ~ 1)
+expr <- expression(f1 <- lm(log(BMI) ~ 1),
+                  f2 <- step(f1, scope = scope, trace = 0))
+# perform the stepwise selection with each of the 5 imputed datasets
+fit <- with(imp, expr)
+
+# count the votes for variables to keep
+formulas <- lapply(fit$analyses, formula)
+terms <- lapply(formulas, terms)
+votes <- unlist(lapply(terms, labels))
+table(votes)
+```
+
+If we use the criterion of more than half of the datasets resulted in selection of a variable, we end up only dropping Marijuana. Lets compare models using anova, leaving out variables with less than 5 votes.
+
+```{r}
+# remove Education
+model_without = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
+model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus))
+anova(model_without, model_with)
+```
+
+This p-value is not significant, so we fail to reject the null hypothesis, so we can discard `Education`.
+
+```{r}
+# remove LittleInterest
+model_without = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
+model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
+anova(model_without, model_with)
+```
+
+Again, we fail to reject the null, and can remove `LittleInterest`
+
+```{r}
+# remove Poverty
+model_without = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +
+  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
+model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
+anova(model_without, model_with)
+```
+
+This one is getting close to 0.05. We still should consider dropping it, but for now we will keep it.
+
+Here is the final model of this process which we will call `fit_add_aic`
+
+```{r}
+fit_add_aic = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
+summary(fit_add_aic$analyses[[1]])
+```
+Lets try a forward using bic, and see if we get a smaller model:
+
+```{r}
+# build the stepwise workflow
+scope <- list(upper = ~ Age +  AlcoholYear + Marijuana + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus,
+             lower = ~ 1)
+expr <- expression(f1 <- lm(log(BMI) ~ 1),
+                  f2 <- step(f1, scope = scope, direction = "forward", 
+                             K = log(nrow(imp[["data"]])), trace = 0))
+# perform the stepwise selection with each of the 5 imputed datasets
+fit <- with(imp, expr)
+
+# count the votes for variables to keep
+formulas <- lapply(fit$analyses, formula)
+terms <- lapply(formulas, terms)
+votes <- unlist(lapply(terms, labels))
+table(votes)
+```
+
+This appears to yield the same votes as the prior method.
+
+Lastly, lets try a stepwise in both directions using AIC
+
+```{r}
+# build the stepwise workflow
+scope <- list(upper = ~ Age +  AlcoholYear + Marijuana + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus,
+             lower = ~ 1)
+expr <- expression(f1 <- lm(log(BMI) ~ 1),
+                  f2 <- step(f1, scope = scope, direction = "both", 
+                             trace = 0))
+# perform the stepwise selection with each of the 5 imputed datasets
+fit <- with(imp, expr)
+
+# count the votes for variables to keep
+formulas <- lapply(fit$analyses, formula)
+terms <- lapply(formulas, terms)
+votes <- unlist(lapply(terms, labels))
+table(votes)
+```
+
+Still same results. For now, our additive model will be `fit_add_aic`
+
+### Model Diagnostics
+
+
+
+
 
 #### Data Interactions
 
@@ -177,3 +519,12 @@ Mental health related variables:
 to_test = c("HealthGen", "DaysPhysHlthBad", "DaysMentHlthBad", "LittleInterest", "Depressed" )
 pairs(subset(NHANES, select = to_test))
 ```
+
+#### Data Imputation
+
+```{r}
+# Compare the imputed variables (red) and observed (blue)
+densityplot(imp)
+# summary(imp)
+```
+
