@@ -479,6 +479,16 @@ table(votes)
 
 Still same results. For now, our additive model will be `fit_add_aic`
 
+Before we move on, there are some predictors which are not significant individually, so we should check for collinearity again.
+
+
+```{r}
+library(car)
+car::vif(fit_add_aic$analyses[[1]])
+```
+
+There appear to be no major issues with collinearity in this additive model.
+
 
 
 
