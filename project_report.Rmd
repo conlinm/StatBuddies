@@ -110,7 +110,7 @@ reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 's
                    with HealthGen','redundant with HealthGen', 'redundant with Race1', 'specific by 
                    Gender'))
 
-df_keep = data.frame(predictor = c('Age', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 
+df_keep = data.frame(predictor = c('SurveyYr', 'Age', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 
                                    'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 
                                    'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen',
                                    'LittleInterest', 'Poverty', 'SleepHrsNight', 'Gender', 
@@ -123,8 +123,12 @@ knitr::kable(list(df_keep[1:11,], df_keep[12:22,]), caption = "Initial Predictor
 
 Next, let's build a dataset `nhanes_select` using just the above `df_keep` variables.
 
+Furthermore, the NHANES dataset has data for 2 survey years: 2009-10 and 2011-12. There are certain variables, such as TVHrsDay and CompHrsDay which are only present within the later time period (2011_2012). To eliminate this large missing value problem, we will further filter our dataset down by the more recent year, 2011_12.
+
 ```{r}
 nhanes_select = subset(NHANES, select =c(df_keep$predictor, "BMI"))
+nhanes_select = nhanes_select[nhanes_select$SurveyYr == '2011_12', ] #filtering by year
+nhanes_select = subset(nhanes_select, select = -c(SurveyYr)) #removing SurveyYr as a column for model building
 ```
 The resulting dataset, after the initial variable selection above, consists of `r nrow(nhanes_select)` observations (rows) and `r ncol(nhanes_select)` variables (columns) including `BMI` and the chosen predictors.
 
@@ -343,6 +347,7 @@ qqline(resid(fit_add$analyses[[1]]), col = "darkorange")
 qqnorm(resid(fit_add_log$analyses[[1]]), col = "dodgerblue", main = "Normal Q-Q Plot - log(BMI)")
 qqline(resid(fit_add_log$analyses[[1]]), col = "darkorange")
 ```
+
 Again, the log transformation of BMI results in a much better appearing QQ plot. Moving forward, we will use the log transformed BMI for our model building.
 
 #### Model Selection
@@ -369,60 +374,60 @@ votes <- unlist(lapply(terms, labels))
 table(votes)
 ```
 
-If we use the criterion of more than half of the datasets resulted in selection of a variable, we end up only dropping Marijuana. Let's compare the models using anova, leaving out variables with less than 5 votes.
+If we use the criterion of more than half of the datasets resulted in selection of a variable, we end up only dropping Education, Gender, and Marijuana. Let's compare the models using anova, leaving out variables with less than 5 votes.
 
 ```{r}
-# remove Education
+# remove HardDrugs
 model_without = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
   TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
-  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
+  SleepHrsNight +  Race1  +  MaritalStatus))
 model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
   HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
   TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
-  SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus))
+  SleepHrsNight +  Race1  +  MaritalStatus))
 anova(model_without, model_with)
 ```
 
-This p-value is not significant, so we fail to reject the null hypothesis and we can discard `Education`.
+This p-value is not significant, so we fail to reject the null hypothesis and we can discard `HardDrugs`.
 
 ```{r}
-# remove LittleInterest
+# remove PhysActiveDays
 model_without = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  UrineVol1 +  HealthGen + Poverty +
-  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
-model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
-  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
+  SleepHrsNight +  Race1  +  MaritalStatus))
+model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Race1  +  MaritalStatus))
 anova(model_without, model_with)
 ```
 
-Again, we fail to reject the null hypothesis based on the p-value, and can remove `LittleInterest`.
+Again, we fail to reject the null hypothesis based on the p-value, and can remove `PhysActiveDays`.
 
 ```{r}
 # remove Poverty
-model_without = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  UrineVol1 +  HealthGen +
-  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
-model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  UrineVol1 +  HealthGen + Poverty +
-  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
+model_without = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+model_with = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Race1  +  MaritalStatus))
 anova(model_without, model_with)
 ```
 
-This p-value is getting close to 0.05. We should consider dropping `Poverty`, but for now we will keep it.
+This p-value is again greater than 0.05, and so we will remove `Poverty` for now. 
 
 Here is the final model of this process which we will call `fit_add_aic`
 
 ```{r}
 fit_add_aic = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  UrineVol1 +  HealthGen + Poverty +
-  SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
 summary(fit_add_aic$analyses[[1]])
 ```
 Let's try a forward search using BIC, and see if we get a smaller model:
@@ -445,6 +450,7 @@ formulas <- lapply(fit$analyses, formula)
 terms <- lapply(formulas, terms)
 votes <- unlist(lapply(terms, labels))
 table(votes)
+
 ```
 
 This appears to yield the same votes as the prior method.
@@ -472,6 +478,9 @@ table(votes)
 ```
 
 Still same results. For now, our additive model will be `fit_add_aic`
+
+
+
 
 ### Model Diagnostics
 
