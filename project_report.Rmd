@@ -3,10 +3,10 @@ title: "NHANES Data Analysis Project"
 author: "STAT 420, Summer 2023, Preeti Agrawal, Thimira Bandara, Michael Conlin, Constatin Kappel"
 date: "2023-07-26"
 output:
+  pdf_document: default
   html_document: 
     theme: readable
     toc: yes
-  pdf_document: default
 urlcolor: cyan
 ---
 
@@ -34,26 +34,26 @@ library(NHANES)
 ```
 ### Initial Variable Selection
 
-#### Ruling out variables by reasoning or by exploratory analysis
+#### Rule out variables by reasoning or by exploratory analysis
 
-We have chosen `BMI` (Body mass index (weight/height2 in kg/m2)) as our response variable. In NHANES, this data is reported for participants aged 2 years or older, so that will focus on participants over 2 years old for our analysis. Provided below are all the predictors in NHANES, along with our response variable `BMI`.
+We have chosen `BMI` (Body mass index (weight/height2 in kg/m2)) as our response variable. In NHANES, this data is reported for participants aged 2 years or older, so we will focus on those participants for our analysis. Provided below are all the variables in NHANES, along with our response variable `BMI`.
 
 ```{r}
 sort(names(NHANES)) # alphabetic order
 ```
 
-We will add all omitted predictors into an overview table `df_exclude`. The variables we would like to keep will be in `df_keep`. 
+We will add all omitted variables to a data frame `df_exclude`. The variables we would like to use as predictors will be kept in a dataframe `df_keep`. The following is our reasoning for ruling out or keeping certain variables as predictors:
 
 1. Some predictors can be ruled out right away. Our response variable is `BMI`, so we should not use body `Weight` or `Height` as predictors, because `BMI` is calculated by dividing the `Weight` by `Height`.  
 
-2. The next group of predictors seems very closely related either by name or logic deduction, for example, `Age`, `AgeDecade`, `AgeMonths`. Let's quickly double-check if they are linearly related: 
+2. The next group of predictors seems very closely related either by name or logic deduction, for example, age related variables such as `Age`, `AgeDecade`, `AgeMonths`. Let's quickly double-check if they are linearly related: 
 
 ```{r, fig.asp={1}}
-pairs(subset(NHANES, select = c('Age', 'Age1stBaby', 'AgeDecade', 'AgeMonths',
+pairs(subset(NHANES, select = c('Age', 'AgeDecade', 'AgeMonths',
                                 'AgeFirstMarij', 'AgeRegMarij')))
 ```
 
-`Age`, `AgeDecade` and `AgeMonth` are clearly collinear, so we will only keep `Age`. Likewise, both variables for Marijuana use appear collinear, so we keep only one, say `AgeRegMarij` and may decide to drop it later if it is not useful. We might keep `Age1stBaby`. 
+`Age`, `AgeDecade` and `AgeMonth` are clearly collinear, so we will only keep `Age`. Likewise, both variables for Marijuana use appear collinear, so we keep only one, say `AgeRegMarij` and we may decide to drop it later if it is not useful. 
 
 3. Now let's check for collinearity between different blood pressure related variables: 
 
@@ -64,52 +64,74 @@ pairs(subset(NHANES, select=to_test))
 
 The blood pressure variables fall into two groups: diastolic and systolic blood pressure readings. We would expect there to be strongly collinearity within each group, which is the case. So, we only keep the average in each group `BPDiaAve` and `BPSysAve`.
 
-#### For the following variable assessments for collinearity, see the appendix for their `pairs()` plot.
+#### Refer to the Appendix for the `pairs()` plots assessment of the following variables' collinearity:
 
-4. Next, let's check all variables related to alcohol:
-We again performed a `pairs()` graph to visualize possible collinearity, and this graph is in the appendix.
-Collinearity is not as clear in this case, but we believe one predictor related to alcohol consumption may be sufficient. We will keep `AlcoholYear`. 
+4. Let's check all variables related to alcohol: We again performed a `pairs()` plot to visualize possible collinearity, and this graph is in the Appendix. Collinearity is not as clear in this case, but we believe one predictor related to alcohol consumption may be sufficient. We will keep `AlcoholYear`. 
 
-5. Let's now investigate the collinearity of other drug-related variables (note: `AgeRegMarij` was in the other group as well and we kept it).
-Most of these predictors are categorical, so collinearity cannot be seen, except for `SmokeAge` and `AgeRegMarij`. The latter makes sense as this drug is usually consumed via smoking. We can thus use one as a proxy for the other. Let's keep `SmokeNow` and `HardDrugs` as proxies for drug abuse and its potential effect on BMI. 
+5. Let's now investigate the collinearity of other drug-related variables: Most of these predictors are categorical, so collinearity cannot be seen, except for `SmokeAge` and `AgeRegMarij`. The latter makes sense as this drug is usually consumed via smoking. We can thus use one as a proxy for the other. (Note: `AgeRegMarij` was in the age related group above as well and we kept it). Let's keep `SmokeNow` and `HardDrugs` as proxies for drug abuse and its potential effect on BMI. 
 
-6. Next, let's investigate a few life-style variables related to being physically active or the opposite thereof, screen time:
-Due to the nature of these variables being categorical, a clear picture of collinearity is not observable. Let's keep half of these parameters for now, which are the ones with a bit denser levels, `PhysActiveDays`, `TVHrsDay`, `CompHrsDay`. 
+6. Next, let's investigate a few life-style variables related to being physically active or the opposite thereof, screen time: Due to the nature of these variables being categorical, a clear picture of collinearity is not observable. Let's keep half of these parameters for now, which are the ones with a bit denser levels, `PhysActiveDays`, `TVHrsDay`, `CompHrsDay`. 
 
-7. Now we should look into some other health related variables. Let's see for cholesterol and diabetes related predictors:
+7. Now let's look into some other health related variables, such as cholesterol and diabetes related predictors:
 `DirectChol` and `TotChol` appear to be collinear, let's keep `TotChol`. Out of the diabetes related ones, we keep `Diabetes`.
 
-8. Now let's analyze more health related variables, such as those related to urine volume and flow below:
+8. Let's analyze more health related variables, such as those related to urine volume and flow below:
 Urine volume and urine flow appear collinear. Moreover, there might be collinearity between the first and second urine measurement, respectively. Let's keep `UrineVol1` for now. 
 
-9. Next up are a somewhat heterogenic group of variables related to health or mental health. For example, somebody who is depressed might show little interest in doing things.
-Again, collinearity is not easy to spot in categorical variables. Let's pick `LittleInterest` as a mild form of mental health issue (which might lead to little physical activity and obesity) and `HealthGen` as a general health rating. 
+9. Next we analyze a somewhat heterogenic group of variables related to health or mental health. For example, somebody who is depressed might show little interest in doing things. Again, collinearity is not easy to spot in categorical variables. Let's pick `LittleInterest` as a mild form of mental health issue which might lead to little physical activity and obesity, and `HealthGen` as a general health rating. 
 
-10. We decided to keep `Poverty` which is a ratio of family income to poverty guidelines, and drop `HHIncomeMid` and `HHIncome`, as they both capture similar information to what the `Poverty` variable captures. 
+10. We decided to keep `Poverty` which is a ratio of family income to poverty guidelines, and drop `HHIncomeMid` and `HHIncome`, as they both capture similar information to what the `Poverty` variable captures. Similarly, we chose to keep `Race1` instead of `Race3` as they both capture similar information, and `Race1` has more data compared to `Race3`.
 
-11. Finally, let's add `nPregnancies`, `Poverty`, `SleepHrsNight`, `Gender`, `Race1`, `Education`, and `MartialStatus` as we believe they can have an effect on BMI, and do not suspect collinearity.  
+11. Finally, let's add `Poverty`, `SleepHrsNight`, `Gender`, `Race1`, `Education`, and `MartialStatus` as we believe they can have an effect on BMI, and we do not suspect collinearity.  
 
 ```{r }
 #Setting up the data frames with the variables we will be excluding and keeping for model building
 
-df_exclude = data.frame(predictor = c('Weight', 'Height', 'Age1stBaby', 'AgeDecade', 'AgeMonth', 'AgeRegMarij', 'Alcohol12PlusYr', 'AlcoholDay', 'Smoke100', 'SmokeAge', 'Marijuana', 'RegularMarij', "BPDia1", "BPDia2", "BPDia3", "BPSys1", "BPSys2", "BPSys3", 'PhysActive', 'TVHrsDayChild', 'CompHrsDayChild', 'DirectChol', 'DiabetesAge', "UrineFlow1", "UrineVol2", "UrineFlow2", "DaysPhysHlthBad", "DaysMentHlthBad", "Depressed", 'Race3'), 
-reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 'redundant with nPregnancies and many NAs', 'collinear with Age', 'collinear with Age', 'redundant with Marijuana', 'more sparse than AlcoholYear', 'redundant with AlcoholYear', 'redundant with SmokeNow', 'collinear with AgeRegMarij', 'redundant with AgeRegMarij, the two might be swapped', 'redundant with Marijuana', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'collinear with other blood pressure predictors', 'Redundant with PhysActiveDays', 'redundant with TVHrsDay', 'redundant with CompHrsDay', 'collinear with TotChol', 'redundant with Diabetes', 'collinear with UrineVol1', 'collinear with UrineVol1', 'collinear with UrineVol1', 'redundant with HealthGen', 'redundant with HealthGen', 'redundant with HealthGen', 'redundant with Race1'))
+df_exclude = data.frame(predictor = c('Weight', 'Height', 'Age1stBaby', 'AgeDecade', 'AgeMonth',
+                                      'AgeRegMarij', 'Alcohol12PlusYr', 'AlcoholDay', 'Smoke100',
+                                      'SmokeAge', 'Marijuana', 'RegularMarij', "BPDia1", "BPDia2",
+                                      "BPDia3", "BPSys1", "BPSys2", "BPSys3", 'PhysActive', 
+                                      'TVHrsDayChild', 'CompHrsDayChild', 'DirectChol', 
+                                      'DiabetesAge', "UrineFlow1", "UrineVol2", "UrineFlow2", 
+                                      "DaysPhysHlthBad", "DaysMentHlthBad", "Depressed", "Race3",
+                                      "nPregnancies"), 
+reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 'specific by Gender',
+                   'collinear with Age', 'collinear with Age', 
+                   'redundant with Marijuana', 'more sparse than AlcoholYear', 'redundant with
+                   AlcoholYear', 'redundant with SmokeNow', 'collinear with AgeRegMarij', 
+                   'redundant with AgeRegMarij, the two might be swapped', 'redundant with Marijuana',
+                   'collinear with other blood pressure predictors', 'collinear with other blood 
+                   pressure predictors', 'collinear with other blood pressure predictors', 'collinear
+                   with other blood pressure predictors', 'collinear with other blood pressure 
+                   predictors', 'collinear with other blood pressure predictors', 'Redundant with
+                   PhysActiveDays', 'redundant with TVHrsDay', 'redundant with CompHrsDay', 'collinear
+                   with TotChol', 'redundant with Diabetes', 'collinear with UrineVol1', 'collinear 
+                   with UrineVol1','collinear with UrineVol1', 'redundant with HealthGen', 'redundant
+                   with HealthGen','redundant with HealthGen', 'redundant with Race1', 'specific by 
+                   Gender'))
 
-df_keep = data.frame(predictor = c('Age', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen', 'LittleInterest', 'Poverty', 'SleepHrsNight', 'Gender', 'Race1', 'Education', 'MaritalStatus' ))
-knitr::kable(df_keep, caption = "Initial Predictor Selected")
+df_keep = data.frame(predictor = c('Age', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 
+                                   'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 
+                                   'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen',
+                                   'LittleInterest', 'Poverty', 'SleepHrsNight', 'Gender', 
+                                   'Race1', 'Education', 'MaritalStatus' ))
+
+opts <- options(knitr.kable.NA = "")
+knitr::kable(list(df_keep[1:11,], df_keep[12:22,]), caption = "Initial Predictors Selected", 
+             col.names = "Predictor", booktabs = TRUE)
 ```
 
-Let's build a dataset `nhanes_select` using just the above `df_keep` variables.
+Next, let's build a dataset `nhanes_select` using just the above `df_keep` variables.
 
 ```{r}
 nhanes_select = subset(NHANES, select =c(df_keep$predictor, "BMI"))
 ```
-The resulting dataset, after initial variable selection above, consists of `r nrow(nhanes_select)` observations (rows) and `r ncol(nhanes_select)` variables (columns) including `BMI` and the chosen predictors.
+The resulting dataset, after the initial variable selection above, consists of `r nrow(nhanes_select)` observations (rows) and `r ncol(nhanes_select)` variables (columns) including `BMI` and the chosen predictors.
 
 
-**Convert Categorical into Factor Variables**
+**Convert Categorical Variables into Factor Variables**
 
-We need to know which ones are categorical and turn them into factors
+We will now convert the categorical predictors into factors.
 
 ```{r}
 nhanes_select$Marijuana = as.factor(nhanes_select$Marijuana)
@@ -126,11 +148,11 @@ nhanes_select$Education = as.factor(nhanes_select$Education)
 nhanes_select$MaritalStatus = as.factor(nhanes_select$MaritalStatus)
 ```
 
-#### Missing Values
+#### Address Missing Values
 
-It would be helpful to have a dataset which is devoid of NAs (missing values). First let's get a quick idea of how many missing values are present in our initial dataset. 
+It would be helpful to have a dataset which is devoid of NAs (missing values) before we conduct our regression analysis. First let's get a quick idea of how many missing values are present in our initial dataset. 
 
-**Which variables have majority Nan values**
+**Identify which variables have majority Nan values**
 
 ```{r}
 library(tidyverse, quietly = TRUE)
@@ -152,12 +174,11 @@ print(na_summary)
 
 ```
 
-The table above is sorted according to NA percentage in descending order. 
-The top 5 predictors as far as NAs are concerned are: `nPregnancies`, `SmokeNow`, `PhysActiveDays`, `TVHrsDay`, `CompHrsDay`. Half of all predictors have greater than 25% missing values. If we eliminated all rows with any missing value, we would be left with only `r nrow(na.omit(nhanes_select))`, which is not enough observations to be meaningful. We cannot simply proceed using this data, as any regression tools we will use will need to eliminate many observations in order to proceed with the statistical calculations. It would also be inappropriate to simply eliminate these observations, although this was previously the standard approach. Eliminating this many observations would bring into question how well our study models represent the underlying population. Interpretation of our results would become more difficult, and suspicious of selective observation elimination introducing bias. This data was also costly to produce - we prefer to not simply cast it aside.
+The table above is sorted according to NA percentage in descending order. The top 5 predictors as far as NAs are concerned are: `SmokeNow`, `PhysActiveDays`, `TVHrsDay`, `CompHrsDay` and `Marijuana`. Half of all predictors have greater than 25% missing values. If we eliminated all rows with any missing value, we would be left with only `r nrow(na.omit(nhanes_select))`, which is not enough observations to be meaningful. We cannot simply proceed using this data, as any regression tools we will use will need to eliminate many observations in order to proceed with the statistical calculations. It would also be inappropriate to simply eliminate these observations, although this was previously the standard approach. Eliminating this many observations would bring into question how well our study models represent the underlying population. Interpretation of our results would become more difficult, and suspicious of selective observation elimination introducing bias. This data was also costly to produce - we prefer to not simply cast it aside. We therefore decided to perform data imputation for the missing data. 
 
-Data imputation involves the substitution of missing data with a different value. Although there are simple methods of replacing missing values with the mean or median of the variable in question, the most robust method is multiple imputation. Multiple imputation involves the generation of multiple complete datasets by replacing the missing values with data values which are modeled for each missing entry, from a plausible distribution. The imputation process can use a variety of methods for computing the imputed values, depnding upon the underlying distribution of the observed values, and the relationship of those observed values and the other variables in the observation. Once the multiple complete datasets are generated, any analysis can be performed (such as linear regression) and the results of each analyses are pooled into one set of results.
+Data imputation involves the substitution of missing data with a different value. Although there are simple methods of replacing missing values with the mean or median of the variable in question, the most robust method is multiple imputation. Multiple imputation involves the generation of multiple complete datasets by replacing the missing values with data values which are modeled for each missing entry, from a plausible distribution. The imputation process can use a variety of methods for computing the imputed values, depending upon the underlying distribution of the observed values, and the relationship of those observed values and the other variables in the observation. Once the multiple complete datasets are generated, any analysis can be performed (such as linear regression) and the results of each analyses are pooled into one set of results.
 
-We will perform the mutiple imputation process with the `mice` package below. More information regarding the `mice` package can be read at the book website [Flexible Imputation of Missing Data](https://stefvanbuuren.name/fimd/)
+We will perform the multiple imputation process with the `mice` package below. More information regarding the `mice` package can be read at the book website [Flexible Imputation of Missing Data](https://stefvanbuuren.name/fimd/)
 
 ### Data Imputation with the `mice` Package
 
@@ -168,7 +189,7 @@ if (!require(mice)) {
 ```
 
 Here we will perform the imputation. Given the size of the data, this will take a bit of processing time.
-First we will remove the observations where there is no entry for BMI as there are only `r sum(is.na(nhanes_select$BMI))`, to avoid imputation of our response variable.
+First we will remove the observations where there is no entry for BMI as there are only `r sum(is.na(nhanes_select$BMI))` such observations, to avoid imputation of our response variable.
 
 
 ```{r}
@@ -181,11 +202,11 @@ imp = mice(nhanes_imp, seed = 420, m = 5, print = FALSE)
 
 ```
 
-See appendix for density plots comparing imputed and observe values.
+See Appendix for density plots comparing the imputed and observed values.
 
 ### Initial Model Building and Diagnostics
 
-First we will build a complete additive model, to allow an initial diagnostic evaluation.
+Now that imputation is complete to address the missing data, we will build a complete additive model, to allow an initial diagnostic evaluation.
 
 ```{r}
 # perform the linear regression with each of the 5 imputed datasets
@@ -194,18 +215,30 @@ fit_add <- with(imp, lm(BMI ~  Age +  AlcoholYear + Marijuana + SmokeNow +
   TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
   SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus))
 
-summary(fit_add$analyses[[1]])
+summary(fit_add$analyses[[1]]) #summary of the 1st imputed dataset
 ```
-Construct a dataframe of all our 5 of our imputed datasets, with the additional values
+
+We will next construct a dataframe of all of our 5 imputed datasets, with the additional values
 added of columns `.imp` for the imputation number, and `.i` for the observation number within that imputation.
 
 ```{r}
 imp_df = mice::complete(imp, action = "long")
 ```
 
+#### Collinearity
+
+When we built the additive model above, a few parameters had large p-values. Let's check the variance inflation factors for all the predictors in this model, to see if there is any effect of collinearity on the variance of our regression estimates.  
+
+```{r}
+library(car)
+car::vif(fit_add$analyses[[1]])
+```
+
+None of the variable appear to have a large (>5) variance inflation factor which is good to see.  
+
 #### Variance and Normality Assessment
 
-Let's do some tests on this model to identify potential issues.
+Now let's do some tests on this model to identify any potential issues.
 
 ```{r}
 library(lmtest)
@@ -215,7 +248,7 @@ if (!require(nortest)) {
 # install.packages("nortest", quiet = TRUE)
 library(nortest, quietly = TRUE)
 
-### First, define some functions ###
+### First, let's define some functions ###
 
 # Function to calculate the LOOCVRMSE
 calc_loocv_rmse = function(model) {
@@ -250,42 +283,30 @@ model_assess = function(fit){
 ```
 
 ```{r, fig.asp=1}
-#Fitted versus Residuals Plot
+#Fitted versus Residuals Plot for the 1st imputed dataset model
 plot(fitted(fit_add$analyses[[1]]), resid(fit_add$analyses[[1]]), col = "darkblue", pch = 20,
      xlab = "Fitted", ylab = "Residuals", main = "Fitted versus Residuals Plot")
 abline(h=0,col = "darkorange")
 ```
 
-Fitted-residuals plot reveals deviation from homoskedasticity. Also, the p.value of the BP-test, to check for the constant variance assumption, is suspicious. The Shapiro-Wilk test does appear suspicious, suggesting that the normality assumption is violated. 
+The Fitted versus Residuals plot reveals deviation from homoscedasticity (constant variance). 
 
 ```{r, fig.asp=1}
-#Normal Q-Q Plot
+#Normal Q-Q Plot for the 1st imputed dataset model
 qqnorm(resid(fit_add$analyses[[1]]), col = "dodgerblue")
 qqline(resid(fit_add$analyses[[1]]), col = "darkorange")
 ```
 
-The Q-Q-Plot might show some deviations from normality. Again, the subset is small making it difficult to establish a pattern.
+The Q-Q-Plot also shows deviations from normality. 
 
-Let's look at the Shapiro Test for normality, and the Breusch-Pagan Test for Homoscedasticity.
+Let's now look at the p-values from the AD Test for normality, and the Breusch-Pagan Test for Homoscedasticity.
 
 ```{r}
 model_diagnostics(fit_add)
 ```
-The p-values for these test, using each of the 5 imputed dataset models, are all very low, essentially 0. So we reject the null hypothesis, calling into question, both normality and homoscedasticity. However, both of these tests are susceptable to the influence of large sample sizes, so they may be less reliable in this setting.
+The p-values for these tests, using each of the 5 imputed dataset models, are all very low, essentially 0. So we reject the null hypothesis, calling into question, both normality and homoscedasticity. However, both of these tests are susceptible to the influence of large sample sizes, so they may be less reliable in this setting.
 
-
-#### Collinearity
-
-In the summary above many parameters had large p-values. Let's check these for variance inflation. 
-
-```{r}
-library(car)
-car::vif(fit_add$analyses[[1]])
-```
-
-None of the variable appear to have a large (>5) variance inflation factor. 
-
-Because of the findings above, we will fit a model using the log transformation of the response variable (BMI), and reassess the diagnostics.
+Because of the findings above, we will perform a variance stabilizing log transformation on the response variable (BMI), fit the model again and reassess the diagnostics.
 
 ```{r}
 # perform the linear regression with each of the 5 imputed datasets
@@ -299,11 +320,10 @@ summary(fit_add_log$analyses[[1]])
 ```
 
 ```{r, fig.asp=1}
-#Fitted versus Residuals Plot
-#Fitted versus Residuals Plot
+#Comparing the Fitted versus Residuals Plots of the Initial Additive model and the Log(BMI) Transformation Model
 par(mfrow=c(1,2))
 plot(fitted(fit_add$analyses[[1]]), resid(fit_add$analyses[[1]]), col = "darkblue", pch = 20,
-     xlab = "Fitted", ylab = "Residuals", main = "Fitted vs Residuals")
+     xlab = "Fitted", ylab = "Residuals", main = "Fitted vs Residuals - BMI")
 abline(h=0,col = "darkorange")
 plot(fitted(fit_add_log$analyses[[1]]), resid(fit_add_log$analyses[[1]]), col = "darkblue", pch = 20,
      xlab = "Fitted", ylab = "Residuals", main = "Fitted vs Residuals - log(BMI)")
@@ -311,25 +331,25 @@ abline(h=0,col = "darkorange")
 ```
 The log transformation of BMI model looks much better, though still not perfect. 
 
-Now the Q-Q plot:
+Now let's look at the Q-Q plots:
 
 ```{r, fig.asp=1}
-#Normal Q-Q Plot
+#Comparing the Normal Q-Q Plots of the Initial Additive model and the Log(BMI) Transformation Model
 par(mfrow=c(1,2))
 # no transformation
-qqnorm(resid(fit_add$analyses[[1]]), col = "dodgerblue")
+qqnorm(resid(fit_add$analyses[[1]]), col = "dodgerblue", main = "Normal Q-Q Plot - BMI")
 qqline(resid(fit_add$analyses[[1]]), col = "darkorange")
 # log transformation
-qqnorm(resid(fit_add_log$analyses[[1]]), col = "dodgerblue")
+qqnorm(resid(fit_add_log$analyses[[1]]), col = "dodgerblue", main = "Normal Q-Q Plot - log(BMI)")
 qqline(resid(fit_add_log$analyses[[1]]), col = "darkorange")
 ```
 Again, the log transformation of BMI results in a much better appearing QQ plot. Moving forward, we will use the log transformed BMI for our model building.
 
-#### Stepwise Model Selection
+#### Model Selection
 
-Now we build and run the stepwise process to select predictors. Notice that our 5 datasets with observed and imputed data are passed to the stepwise function using `with()` which in this case returns a `mira` object from the `mice` package.
+Now we use the different search procedures, backwards, forwards, and stepwise to search for models and select predictors. Notice that our 5 datasets with observed and imputed data are passed to the stepwise function using `with()` which in this case returns a `mira` object from the `mice` package.
 
-First we will start with the additive model and perform a stepwise backward AIC model selection.
+First we will start with the additive model and perform a backward AIC model search.
 ```{r}
 # build the stepwise workflow
 scope <- list(upper = ~ Age +  AlcoholYear + Marijuana + SmokeNow +
@@ -349,7 +369,7 @@ votes <- unlist(lapply(terms, labels))
 table(votes)
 ```
 
-If we use the criterion of more than half of the datasets resulted in selection of a variable, we end up only dropping Marijuana. Lets compare models using anova, leaving out variables with less than 5 votes.
+If we use the criterion of more than half of the datasets resulted in selection of a variable, we end up only dropping Marijuana. Let's compare the models using anova, leaving out variables with less than 5 votes.
 
 ```{r}
 # remove Education
@@ -364,7 +384,7 @@ model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
 anova(model_without, model_with)
 ```
 
-This p-value is not significant, so we fail to reject the null hypothesis, so we can discard `Education`.
+This p-value is not significant, so we fail to reject the null hypothesis and we can discard `Education`.
 
 ```{r}
 # remove LittleInterest
@@ -379,7 +399,7 @@ model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
 anova(model_without, model_with)
 ```
 
-Again, we fail to reject the null, and can remove `LittleInterest`
+Again, we fail to reject the null hypothesis based on the p-value, and can remove `LittleInterest`.
 
 ```{r}
 # remove Poverty
@@ -394,7 +414,7 @@ model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
 anova(model_without, model_with)
 ```
 
-This one is getting close to 0.05. We still should consider dropping it, but for now we will keep it.
+This p-value is getting close to 0.05. We should consider dropping `Poverty`, but for now we will keep it.
 
 Here is the final model of this process which we will call `fit_add_aic`
 
@@ -405,7 +425,7 @@ fit_add_aic = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
   SleepHrsNight +  Gender +  Race1 +  MaritalStatus))
 summary(fit_add_aic$analyses[[1]])
 ```
-Lets try a forward using bic, and see if we get a smaller model:
+Let's try a forward search using BIC, and see if we get a smaller model:
 
 ```{r}
 # build the stepwise workflow
@@ -429,7 +449,7 @@ table(votes)
 
 This appears to yield the same votes as the prior method.
 
-Lastly, lets try a stepwise in both directions using AIC
+Lastly, let's try a Stepwise seach in both directions using AIC.
 
 ```{r}
 # build the stepwise workflow
