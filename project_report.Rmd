@@ -12,11 +12,29 @@ urlcolor: cyan
 
 ```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
 options(scipen = 1, digits = 4, width = 80, fig.align = "center")
+library(knitr)
 ```
 
 # Title
 
 ## Introduction
+
+Obesity is an endemic health issue common to many industrialized nations in the world. It is known that obesity is related to cardiovascular disease (high blood pressure, heart attack, stroke), type II diabetes, sleep apnea, metabolic syndrome, fatty liver disease and cancer [CDC on obesity](https://www.cdc.gov/healthyweight/effects/index.html). According to the World Health Organization, [WHO](https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight), obesity has nearly tripled between 1975 and 2021, in a time frame of less than two generations. Obesity can be measured by the BMI, is therefore a relevant health issue. The threshold of calling someone obese is a BMI $\geq$ 30.   
+
+Our personal interest in obesity is for once that two members of this team have a background in biochemistry and medicine, respectively, and that still obesity represents a health issue which everyone knows and can observe in everyday life. So, while there is a bio-medical relevance of the topic, the concept of BMI or the phenomenon of obesity do not require everyone to have a deep domain-specific knowledge. In fact, none of us directly worked scientifically with obesity before and thus we saw it as a new and challenging topic to work on. 
+
+We are using the "the non-institutionalized civilian resident population of the United States" (NHANES) dataset. It has been published by the *American National Health and Nutrition Examination surveys" since the 1960s. The full data thus covers the relevant time frame which saw the drastic increase in obesity as reported by the WHO. The full data can be obtained from [CDC.gov](http://www.cdc.gov/nchs/nhanes.htm). 
+We are using a subset of NHANES which is easily accessible through the R library `NHANES`. It comprises a subset of 10,000 rows and covers a survey period between 2009 and 2012. While not comprehensive it should give us enough material to build a model, select different predictors and reason about its predictions. Our goal is to build an interpretable model which identifies and quantifies the influence of several physical and life style-related predictors on body weight, specifically the BMI.
+
+In order to build an interpretable model we need to be mindful with non-linear data transformations, high-order interactions and also need to keep variance inflation under control. The task is made challenging by a large number of missing values. If we simply omit all `NA`s using `na.omit()`, which discards all rows with any missing value, we will reduce the total information from 10,000 to `r nrow(na.omit(NHANES))`, so less than 1%. 
+
+Our strategy outline for approaching this project is as follows:
+
+1. Variable (i.e. predictor) selection using a combination of semantic grouping (some variables convey similar information) and collinearity (visually, through `pairs()` plots). 
+1. With a subset of predictors, which we call `nhanes_select` and omitting all `NA`s we build a first reduced model to check parameter estimates, p-values, significance of regression as well as testing LINE assumptions. 
+1. We then approach the problem of missing data by using multivariate imputation by chained equations [MICE](https://doi.org/10.18637/jss.v045.i03) using the `mice` library by Buuren and Groothuls-Outhoorn (2011).  
+1. With 5 versions of imputed data we rebuild our model and use a stepwise process with AIC to select the parameters and their interactions for our model. 
+1. Lastly, we apply a log transformation to BMI and other non-linear transformations to some of the predictors to build a more predictive model.
 
 ## Methods
 
@@ -28,15 +46,11 @@ if (!require(NHANES)) {
 }
 ```
 
-```{r}
-library(NHANES)
-# head(NHANES)
-```
 ### Initial Variable Selection
 
 #### Rule out variables by reasoning or by exploratory analysis
 
-We have chosen `BMI` (Body mass index (weight/height2 in kg/m2)) as our response variable. In NHANES, this data is reported for participants aged 2 years or older, so we will focus on those participants for our analysis. Provided below are all the variables in NHANES, along with our response variable `BMI`.
+We have chosen `BMI` (Body mass index (weight/height² in $[\frac{kg}{m²}]$) as our response variable. In NHANES, this data is reported for participants aged 2 years or older, so we will focus on those participants for our analysis. Provided below are all the variables in NHANES, along with our response variable `BMI`.
 
 ```{r}
 sort(names(NHANES)) # alphabetic order
@@ -193,7 +207,7 @@ if (!require(mice)) {
 ```
 
 Here we will perform the imputation. Given the size of the data, this will take a bit of processing time.
-First we will remove the observations where there is no entry for BMI as there are only `r sum(is.na(nhanes_select$BMI))` such observations, to avoid imputation of our response variable.
+First we will remove the observations where there is no entry for BMI as there are only `r sum(is.na(nhanes_select$BMI))` such observations, to avoid imputation of our response variable. There are `r nrow(nhanes_select[!is.na(nhanes_select$BMI),])` observations left after this operation.  
 
 
 ```{r}
@@ -246,10 +260,9 @@ Now let's do some tests on this model to identify any potential issues.
 
 ```{r}
 library(lmtest)
-# if (!require(nortest)) {
-#   install.packages("nortest", quiet = TRUE)  
-# }
-# install.packages("nortest", quiet = TRUE)
+if (!require(nortest)) {
+  install.packages("nortest", quiet = TRUE)  
+}
 library(nortest, quietly = TRUE)
 
 ### First, let's define some functions ###
@@ -282,10 +295,14 @@ model_assess = function(fit){
 ```
 
 ```{r, fig.asp=1}
-#Fitted versus Residuals Plot for the 1st imputed dataset model
-plot(fitted(fit_add$analyses[[1]]), resid(fit_add$analyses[[1]]), col = "darkblue", pch = 20,
-     xlab = "Fitted", ylab = "Residuals", main = "Fitted versus Residuals Plot")
-abline(h=0,col = "darkorange")
+par(mfrow = c(2,3))
+#Fitted versus Residuals Plot for the imputed dataset model
+for (i in seq(1,5)) {
+  title = strwrap(paste("Fitted versus Residuals Plot using dataset ", as.character(i)), width = 30, simplify = FALSE)
+  plot(fitted(fit_add$analyses[[i]]), resid(fit_add$analyses[[1]]), col = "darkblue", pch = 20,
+       xlab = "Fitted", ylab = "Residuals", main = title)
+  abline(h=0,col = "darkorange")  
+}
 ```
 
 The Fitted versus Residuals plot reveals deviation from homoscedasticity (constant variance). 
@@ -344,6 +361,7 @@ qqline(resid(fit_add_log$analyses[[1]]), col = "darkorange")
 ```
 
 Again, the log transformation of BMI results is a much better appearing QQ plot. Moving forward, we will use the log transformed BMI for our model building.
+
 
 #### Model Selection
 
@@ -490,11 +508,6 @@ Additionally, we want to check which variables are correlated with BMI to furthe
 
 ```{r}
 library("corrplot")
-#Age +  AlcoholYear + SmokeNow +
-  #BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
- # TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
-  #SleepHrsNight +  Race1  +  MaritalStatus
-
 
 # Subset the 'nhanes' dataset using the names of numerical columns in 'numerical_data'
 nhanes_numerical_subset = nhanes_select[, c('Age', 'AlcoholYear', 'BPDiaAve', 'BPSysAve', 'UrineVol1', 'SleepHrsNight', 'TotChol' ,'BMI')]  
@@ -536,7 +549,7 @@ for (var in names(nhanes_categorical_subset)) {
 
 Based Upon the findings above, it seems reasonable to try removing both `UrineVol1` and `TotChol`, as there individual correlations with BMI are negligible.
 
-First we will try removing `UrineVol1`:
+First we will try removing `UrineVol1` at a significance level $\alpha = 0.01$:
 
 ```{r}
 fit_add_aic_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
@@ -553,7 +566,7 @@ anova(fit_add_aic_without, fit_add_aic_with)
 
 Since the p-value of the anova test comparing the models with and without `UrineVol` is greater than 0.01, we fail to reject the null hypothesis, and should remove the variable.
 
-Now consider removing `Tchol`.
+Now consider removing `TotChol` at a significance level $\alpha = 0.01$.
 
 ```{r}
 fit_add_aic_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
@@ -585,7 +598,7 @@ summary(final_add$analyses[[1]])
 #### Data Interactions
 
 
-To determine if interaction terms might improve our model, we will perform a backward AIC stepwise() function with added `Age` interaction terms. This seemed the most plausable and made the most sense from a domain perspective. It could be understandable for instance, that alcohol use at a young age vs an older age might have cpmbined effects upon BMI.
+To determine if interaction terms might improve our model, we will perform a backward AIC stepwise() function with added `Age` interaction terms. This seemed the most plausible and made the most sense from a domain perspective. It could be understandable for instance, that alcohol use at a young age vs an older age might have cpmbined effects upon BMI.
 
 
 ```{r}
@@ -803,8 +816,20 @@ results_table = cbind(row_names, bp_results, shapiro_results, rmse_results, r2_r
 knitr::kable(results_table, col.names = col_names, caption = "Model Comparison")
 ```
 
+In summary we have been able to build a model which can explain more than 55% of the variability in the dataset, according to adjusted $R^2$.
+We note, that as far as leave-one-out-cross-valitation RMSE and adjusted $R^2$ all three, the additive model, the interaction model and the transformed model are performing very similarly. All models have issues with heteroskedasticity and violation of normality assumptions according to Breusch-Pagan test and Shapiro test, respectively. 
+
+We arrived at these models using the steps:
+1. Ruling out many variables by grouping them into similar domains and keeping only one representative in case we detected collinearity. This reduced the number of possible predictors from `r ncol(NHANES)-1` to `r ncol(nhanes_select)-1`.
+1. We dealt with missing data using multiple imputation using the `mice` package. 
+1. We fitted a first version of an additive model with the selected predictors and detected violations of equal variance and normality. 
+1. We log-transformed the response to alleviate some, but not all non-normality.
+1. We performed AIC and BIC stepwise processes to reduce the number of predictors further. 
+1. We tested interaction of `Age` with other predictors as well as transformations of `BPDiaAve`, `BPSysAve`. 
 
 ## Discussion
+
+
 
 ## Appendix
 
