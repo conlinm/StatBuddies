@@ -3,10 +3,10 @@ title: "NHANES Data Analysis Project"
 author: "STAT 420, Summer 2023, Preeti Agrawal, Thimira Bandara, Michael Conlin, Constatin Kappel"
 date: "August 4, 2023"
 output:
-  pdf_document: default
   html_document: 
     theme: readable
     toc: yes
+  pdf_document: default
 urlcolor: cyan
 ---
 
@@ -242,12 +242,13 @@ f = summary(modelobject)$fstatistic
 p = pf(f[1],f[2],f[3],lower.tail=FALSE)
 attributes(p) = NULL
 return(p)
+# note: the pf() function returns '0' if the values are very low
 }
 
 model_summary = function(model){
   model_name = deparse(substitute(model))
   fit_summary <- data.frame(model = model_name, adj_r_squared = summary(model)$adj,
-                            p_val = format(p_value_funct(model), scientific = TRUE))
+                            p_val = signif(p_value_funct(model), 6))
   knitr::kable(fit_summary, col.names = c("Model", "Adj. R-Squared", "P-Value"),
                digits = 32, caption = "Model Assessment Summary", align = "lcc")
 }
@@ -301,10 +302,11 @@ calc_loocv_rmse = function(model) {
 model_diagnostics = function(fit){
   fit_summary <- data.frame(bptest_p = rep(0,5), shapirotest_p = rep(0,5))
   for (i in 1:5){
-    fit_summary$bptest_p[i] = unname(bptest(fit$analyses[[i]])$p.value)
-    fit_summary$shapirotest_p[i] = shapiro.test(residuals(fit$analyses[[i]]))$p.value 
+    fit_summary$bptest_p[i] = signif(unname(bptest(fit$analyses[[i]])$p.value),6)
+    fit_summary$shapirotest_p[i] = 
+      signif(shapiro.test(residuals(fit$analyses[[i]]))$p.value,6) 
   }
-  knitr::kable(fit_summary, col.names = c("BP Test", "Shapiro Test"))
+  knitr::kable(fit_summary, col.names = c("BP Test", "Shapiro Test"), digits = 32)
 }
 
  
@@ -347,7 +349,7 @@ model_diagnostics(fit_add)
 ```
 The p-values for these tests, using each of the 5 imputed dataset models, are all very low, essentially 0. So we reject the null hypothesis, calling into question, both normality and homoscedasticity. However, both of these tests are susceptible to the influence of large sample sizes, so they may be less reliable in this setting.
 
-Because of the findings above, we will perform a variance stabilizing log transformation on the response variable (BMI), fit the model again and reassess the diagnostics.
+Because of the findings from the plots above, we will perform a variance stabilizing log transformation on the response variable (BMI), fit the model again and reassess the diagnostics.
 
 ```{r}
 # perform the linear regression with each of the 5 imputed datasets
@@ -361,7 +363,7 @@ model_summary(fit_add_log$analyses[[1]]) #summary of the model with the 1st impu
 ```
 
 ```{r, fig.asp=1}
-#Comparing the Fitted versus Residuals Plots of the Initial Additive model and the Log(BMI) #Transformation Model
+#Comparing Fitted vs Residuals: Initial Additive model and the Log(BMI) Transformation Model
 par(mfrow=c(1,2))
 plot(fitted(fit_add$analyses[[1]]), resid(fit_add$analyses[[1]]), col = "darkblue", pch = 20,
      xlab = "Fitted", ylab = "Residuals", main = "Fitted vs Residuals - BMI")
@@ -506,7 +508,7 @@ There appear to be no major issues with collinearity in this additive model.
 
 #### Further Predictor Exploration 
 
-Additionally, we want to check which variables from this addditive model are correlated with BMI to further investigate possible interaction terms, and determine if there are additional variables we could consider dropping. 
+Additionally, we want to check which variables from this additive model are correlated with BMI to further investigate possible interaction terms, and determine if there are additional variables we could consider dropping. 
 
 *Correlation Plot*
 
@@ -524,7 +526,7 @@ corrplot(cor_matrix, type = "upper", tl.cex = 0.8, tl.col = "black", tl.srt = 45
 
 ```
 
-Based upon the findings of the numerical data correlation plot above, there seems to be little if any correlation between `UrineVol1` and `TotChol` individually and BMI. Because of this finding seems reasonable to try removing both `UrineVol1` and `TotChol` from the model, and evaluate this removal with anova nested model method.
+Based upon the findings of the numerical data correlation plot above, there seems to be little if any correlation between `UrineVol1` and `TotChol` individually and BMI. Because of this finding, it seems reasonable to try removing both `UrineVol1` and `TotChol` from the model, and evaluate this removal with the anova nested model method.
 
 *Chi-square Analysis of Categorical Variables*
 
@@ -812,7 +814,7 @@ knitr::kable(results_table, col.names = col_names, caption = "Model Comparison")
 ```
 
 As we see from the table above, we have been able to build 3 models which can explain more than 49% of the variability in the dataset, according to adjusted $R^2$.
-As far as adjusted $R^2$ is concerned, the interaction model and the transformed model perform better than the additive model, by explaining about 7.5% more of the variability. All models have issues with heteroscedasticity and violation of normality assumptions according to the Breusch-Pagan and Shapiro-Wilk tests, respectively.
+As far as adjusted $R^2$ is concerned, the interaction model and the transformed model perform better than the additive model, by explaining about 7.5% more of the variability. All models have issues with heteroscedasticity and violation of normality assumptions according to the Breusch-Pagan and Shapiro-Wilk tests, respectively. However, it is noted that the Shapiro-Wilks test and the Breusch-Pagan are susceptible to bias with large sample sizes, and may be more appropriate for models using datasets with smaller sample sizes.
 
 #### Model Assessment - Train/Test Split
 
@@ -938,14 +940,20 @@ abline(a=0, b=1, col = "darkorange", lwd = 3)
 
 We see that the Model with Transformations does better at predicting BMI, however, it does not differ that much from the Model with Interactions. The additive model does not perform as well as the other two models for predicting BMI. 
 
+
 ## Discussion
+
+This was a very educational and productive project. We found motivation for our project in investigating a significant health problem - obesity. We utilized one of the most widely used data sources for healthcare studies, the National Health and Nutrition Examination (NHANES), which we described in the introduction. We were surprised to find a large amount of missing data, but benefited from learning about data imputation, and using the `mice` package to complete our dataset. Using the procedures of variable selection, model building, model assessment, and others that were learned in the class, we found three useful models.
 
 Based on our findings above, we feel that from a prediction and explainability point of view, we would prefer the interaction model, since the transformations do not seem to help much and the interaction model is a little simpler than the model with transformations. 
 
+Our model could be useful for predictions in the clinical setting, with the data needed to run the model being readily available from a brief interview with the patient. However, it must be noted that this model has an average percent error of 13.84%. It is also not clear in what scenarios the prediction of BMI would be useful, as this can simply be measured. Perhaps if the predicted BMI of a patient is greater than their current BMI, we might be concerned about a risk of increasing obesity for this patient, and we may look to encourage them to make appropriate lifestyle changes.
+
+If we instead look at the model from an explainability perspective, we see some significant factors affecting BMI. Some of the predictors that our model shows are associated with and increase in BMI included Age, Diabetes, computer time, and the interaction of age and never married status. Other predictors associated with a decrease in BMI include alcohol, smoking, and having little interest in doings things most days. These three are clearly factors that are associated with other poor quality of life states. In the end, the modifiable predictors from our model that may improve BMI are limiting or mitigating computer time (sitting), marriage (perhaps encouraging meaningful connections with other people) and improving general health.
+
+In conclusion, we found this project to be very educational and the skills learned in this class very powerful. The NHANES data is useful for the investigation of obesity, and utilizing a more complete NHANES dataset would likely be even more insightful.
 
 ## Appendix
-
-### Variable Selection
 
 #### Additional `pairs()` Plots for Collinearity Assessment
 
@@ -997,7 +1005,7 @@ pairs(subset(NHANES, select = to_test))
 
 #### Data Imputation
 
-```{r}
+```{r fig.align='left'}
 # Compare the imputed variables (red) and observed (blue)
 densityplot(imp)
 # summary(imp)
