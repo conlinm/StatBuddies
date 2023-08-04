@@ -3,10 +3,10 @@ title: "NHANES Data Analysis Project"
 author: "STAT 420, Summer 2023, Preeti Agrawal, Thimira Bandara, Michael Conlin, Constatin Kappel"
 date: "August 4, 2023"
 output:
-  pdf_document: default
   html_document: 
     theme: readable
     toc: yes
+  pdf_document: default
 urlcolor: cyan
 ---
 
@@ -445,7 +445,8 @@ fit_add_aic = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
   SleepHrsNight +  Race1  +  MaritalStatus))
-summary(fit_add_aic$analyses[[1]])
+summary(fit_add_aic$analyses[[1]])$r.squared
+
 ```
 Let's try a forward search using BIC, and see if we get a smaller model:
 
