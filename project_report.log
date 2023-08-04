@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.6.26)  4 AUG 2023 15:55
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.6.26)  4 AUG 2023 16:55
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -491,102 +491,102 @@ Overfull \hbox (34.81163pt too wide) in paragraph at lines 131--131
  []
 
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 148.
+(Font)              <10> on input line 150.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 148.
+(Font)              <7> on input line 150.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 148.
-LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 168.
+(Font)              <5> on input line 150.
+LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 170.
 (/Users/michaelconlin/Library/TinyTeX/texmf-dist/tex/latex/lm/t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 ) [1
 
 {/Users/michaelconlin/Library/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}{/Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}]
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 227.
-LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 251.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 229.
+LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 253.
 (/Users/michaelconlin/Library/TinyTeX/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 
-LaTeX Warning: Command \texttwosuperior invalid in math mode on input line 252.
+LaTeX Warning: Command \texttwosuperior invalid in math mode on input line 254.
 
 
-LaTeX Warning: Command \texttwosuperior invalid in math mode on input line 252.
+LaTeX Warning: Command \texttwosuperior invalid in math mode on input line 254.
 
 [2{/Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{/Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{/Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}]
-LaTeX Font Info:    Trying to load font information for TS1+lmtt on input line 306.
+LaTeX Font Info:    Trying to load font information for TS1+lmtt on input line 308.
 (/Users/michaelconlin/Library/TinyTeX/texmf-dist/tex/latex/lm/ts1lmtt.fd
 File: ts1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 <project_report_files/figure-latex/unnamed-chunk-3-1.pdf, id=88, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-3-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-3-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-3-1.pdf  used on input line 311.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-3-1.pdf  used on input line 313.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [3 <./project_report_files/figure-latex/unnamed-chunk-3-1.pdf>]
 <project_report_files/figure-latex/unnamed-chunk-4-1.pdf, id=101, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-4-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-4-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-4-1.pdf  used on input line 335.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-4-1.pdf  used on input line 337.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [4 <./project_report_files/figure-latex/unnamed-chunk-4-1.pdf>] [5] [6]
-Overfull \hbox (76.2434pt too wide) in paragraph at lines 562--562
+Overfull \hbox (76.2434pt too wide) in paragraph at lines 564--564
 []\T1/lmtt/m/n/10 ## i Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors[] 
  []
 
 [7] [8] [9] [10]
 
 LaTeX Font Warning: Font shape `T1/lmtt/bx/it' in size <10> not available
-(Font)              Font shape `T1/lmtt/b/sl' tried instead on input line 867.
+(Font)              Font shape `T1/lmtt/b/sl' tried instead on input line 869.
 
 
 LaTeX Font Warning: Font shape `TS1/lmtt/bx/it' in size <10> not available
-(Font)              Font shape `TS1/lmtt/b/sl' tried instead on input line 867.
+(Font)              Font shape `TS1/lmtt/b/sl' tried instead on input line 869.
 
 [11]
 <project_report_files/figure-latex/unnamed-chunk-16-1.pdf, id=168, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-16-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-16-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-16-1.pdf  used on input line 911.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-16-1.pdf  used on input line 913.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 <project_report_files/figure-latex/unnamed-chunk-17-1.pdf, id=169, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-17-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-17-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-17-1.pdf  used on input line 924.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-17-1.pdf  used on input line 926.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [12 <./project_report_files/figure-latex/unnamed-chunk-16-1.pdf>] [13 <./project_report_files/figure-latex/unnamed-chunk-17-1.pdf>]
 <project_report_files/figure-latex/unnamed-chunk-20-1.pdf, id=192, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-20-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-20-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-20-1.pdf  used on input line 1002.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-20-1.pdf  used on input line 1004.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [14]
 <project_report_files/figure-latex/unnamed-chunk-21-1.pdf, id=198, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-21-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-21-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-21-1.pdf  used on input line 1022.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-21-1.pdf  used on input line 1024.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [15 <./project_report_files/figure-latex/unnamed-chunk-20-1.pdf>] [16 <./project_report_files/figure-latex/unnamed-chunk-21-1.pdf>] [17] [18] [19]
 <project_report_files/figure-latex/unnamed-chunk-28-1.pdf, id=238, 469.755pt x 325.215pt>
 File: project_report_files/figure-latex/unnamed-chunk-28-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-28-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-28-1.pdf  used on input line 1283.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-28-1.pdf  used on input line 1285.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
 [20 <./project_report_files/figure-latex/unnamed-chunk-28-1.pdf>] [21] [22]
 <project_report_files/figure-latex/unnamed-chunk-33-1.pdf, id=261, 469.755pt x 325.215pt>
 File: project_report_files/figure-latex/unnamed-chunk-33-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-33-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-33-1.pdf  used on input line 1506.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-33-1.pdf  used on input line 1508.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
 [23 <./project_report_files/figure-latex/unnamed-chunk-33-1.pdf>]
 <project_report_files/figure-latex/unnamed-chunk-34-1.pdf, id=275, 469.755pt x 325.215pt>
 File: project_report_files/figure-latex/unnamed-chunk-34-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-34-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-34-1.pdf  used on input line 1525.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-34-1.pdf  used on input line 1527.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
 [24 <./project_report_files/figure-latex/unnamed-chunk-34-1.pdf>]
-Underfull \hbox (badness 1596) in paragraph at lines 1590--1596
+Underfull \hbox (badness 1596) in paragraph at lines 1592--1598
 \T1/lmr/m/n/10 + log1p(BPSysAve) + TVHrs-Day + Com-pHrs-Day + Di-a-betes + Health-Gen + Lit-tleIn-ter-est +
  []
 
@@ -594,49 +594,49 @@ Underfull \hbox (badness 1596) in paragraph at lines 1590--1596
 <project_report_files/figure-latex/unnamed-chunk-50-1.pdf, id=344, 469.755pt x 325.215pt>
 File: project_report_files/figure-latex/unnamed-chunk-50-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-50-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-50-1.pdf  used on input line 2196.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-50-1.pdf  used on input line 2198.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
 [34 <./project_report_files/figure-latex/unnamed-chunk-50-1.pdf>]
 <project_report_files/figure-latex/unnamed-chunk-51-1.pdf, id=356, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-51-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-51-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-51-1.pdf  used on input line 2266.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-51-1.pdf  used on input line 2280.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [35]
 <project_report_files/figure-latex/unnamed-chunk-52-1.pdf, id=364, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-52-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-52-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-52-1.pdf  used on input line 2278.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-52-1.pdf  used on input line 2292.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [36 <./project_report_files/figure-latex/unnamed-chunk-51-1.pdf>]
 <project_report_files/figure-latex/unnamed-chunk-53-1.pdf, id=374, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-53-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-53-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-53-1.pdf  used on input line 2290.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-53-1.pdf  used on input line 2304.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [37 <./project_report_files/figure-latex/unnamed-chunk-52-1.pdf>]
 <project_report_files/figure-latex/unnamed-chunk-54-1.pdf, id=385, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-54-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-54-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-54-1.pdf  used on input line 2301.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-54-1.pdf  used on input line 2315.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [38 <./project_report_files/figure-latex/unnamed-chunk-53-1.pdf>]
 <project_report_files/figure-latex/unnamed-chunk-55-1.pdf, id=395, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-55-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-55-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-55-1.pdf  used on input line 2312.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-55-1.pdf  used on input line 2326.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [39 <./project_report_files/figure-latex/unnamed-chunk-54-1.pdf>]
 <project_report_files/figure-latex/unnamed-chunk-56-1.pdf, id=405, 469.755pt x 469.755pt>
 File: project_report_files/figure-latex/unnamed-chunk-56-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-56-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-56-1.pdf  used on input line 2324.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-56-1.pdf  used on input line 2338.
 (pdftex.def)             Requested size: 469.75386pt x 469.75386pt.
 [40 <./project_report_files/figure-latex/unnamed-chunk-55-1.pdf>]
 <project_report_files/figure-latex/unnamed-chunk-57-1.pdf, id=416, 469.755pt x 325.215pt>
 File: project_report_files/figure-latex/unnamed-chunk-57-1.pdf Graphic file (type pdf)
 <use project_report_files/figure-latex/unnamed-chunk-57-1.pdf>
-Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-57-1.pdf  used on input line 2336.
+Package pdftex.def Info: project_report_files/figure-latex/unnamed-chunk-57-1.pdf  used on input line 2350.
 (pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
 [41 <./project_report_files/figure-latex/unnamed-chunk-56-1.pdf>] [42 <./project_report_files/figure-latex/unnamed-chunk-57-1.pdf>] [43] [44] [45] [46] (./project_report.aux)
  ***********
@@ -644,18 +644,18 @@ LaTeX2e <2023-06-01> patch level 1
 L3 programming layer <2023-06-16>
  ***********
 Package rerunfilecheck Info: File `project_report.out' has not changed.
-(rerunfilecheck)             Checksum: D7DA4484305FBC5871672FA8D5A1438F;1521.
+(rerunfilecheck)             Checksum: C1D03B9C85550EC97AB8B00FDEEE391A;1967.
  ) 
 Here is how much of TeX's memory you used:
  12479 strings out of 477683
- 199059 string characters out of 5829730
+ 199223 string characters out of 5829730
  1880769 words of memory out of 5000000
  32631 multiletter control sequences out of 15000+600000
  566258 words of font info for 82 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  75i,8n,79p,717b,584s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi10.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi7.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmri10.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy10.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtk10.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtko10.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtt10.pfb></Users/michaelconlin/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtti10.pfb>
-Output written on project_report.pdf (46 pages, 21436385 bytes).
+Output written on project_report.pdf (46 pages, 21438954 bytes).
 PDF statistics:
  569 PDF objects out of 1000 (max. 8388607)
  449 compressed objects within 5 object streams

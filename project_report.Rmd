@@ -3,10 +3,10 @@ title: "NHANES Data Analysis Project"
 author: "STAT 420, Summer 2023, Preeti Agrawal, Thimira Bandara, Michael Conlin, Constatin Kappel"
 date: "August 4, 2023"
 output:
+  pdf_document: default
   html_document: 
     theme: readable
     toc: yes
-  pdf_document: default
 urlcolor: cyan
 ---
 
@@ -16,7 +16,7 @@ library(knitr)
 ```
 
 
-# Title
+# Exploration of BMI and Associated Predictors using Linear Models and the NHANES Dataset
 
 ## Introduction
 
@@ -943,13 +943,13 @@ We see that the Model with Transformations does better at predicting BMI, howeve
 
 ## Discussion
 
-This was a very educational and productive project. We found motivation for our project in investigating a significant health problem - obesity. We utilized one of the most widely used data sources for healthcare studies, the National Health and Nutrition Examination (NHANES), which we described in the introduction. We were surprised to find a large amount of missing data, but benefited from learning about data imputation, and using the `mice` package to complete our dataset. Using the procedures of variable selection, model building, model assessment, and others that were learned in the class, we found three useful models.
+This was a very educational and productive project. We found motivation for our project in investigating a significant health problem - obesity. We utilized one of the most widely used data sources for healthcare studies, the National Health and Nutrition Examination (NHANES), which we described in the introduction. We were surprised to find a large amount of missing data, but benefited from learning about data imputation, and using the `mice` package to complete our dataset. There are limitations to using imputed data, and we did not have enough time to learn more about the methods of minimizing these risks. We cannot be sure that the imputed data lead to a model that accurately represented the true relationships between predictors and BMI in the underlying population. However, we felt that the advantage of data imputation mitigating the risk of bias due to missing data was greater than the risks.
 
-Based on our findings above, we feel that from a prediction and explainability point of view, we would prefer the interaction model, since the transformations do not seem to help much and the interaction model is a little simpler than the model with transformations. 
+Using the procedures of variable selection, model building, model assessment, and others that were learned in the class, we found three useful models. Based on our findings above, we feel that from a prediction and explainability point of view, we would prefer the interaction model, since the transformations do not seem to help much and the interaction model is a little simpler than the model with transformations. 
 
-Our model could be useful for predictions in the clinical setting, with the data needed to run the model being readily available from a brief interview with the patient. However, it must be noted that this model has an average percent error of 13.84%. It is also not clear in what scenarios the prediction of BMI would be useful, as this can simply be measured. Perhaps if the predicted BMI of a patient is greater than their current BMI, we might be concerned about a risk of increasing obesity for this patient, and we may look to encourage them to make appropriate lifestyle changes.
+Our model could be useful for predictions in the clinical setting, with the data needed to run the model being readily available from a brief interview with the patient. However, it must be noted that this model has an average percent error of 13.84%. This incomplete accounting of the variability in our model is in part due to the complexity of what determines a person's BMI. We found many factors that significantly, but only minimally, affected a subject's BMI. It is clear that a person's BMI is a multifactorial issue, and many of those factors are not included in this particular dataset, such as genetics, and diet.  It is also not clear in what scenarios the prediction of BMI would be useful, as this can simply be measured. Perhaps if the predicted BMI of a patient is greater than their current BMI, we might be concerned about a risk of increasing obesity for this patient, and we may look to encourage them to make appropriate lifestyle changes.
 
-If we instead look at the model from an explainability perspective, we see some significant factors affecting BMI. Some of the predictors that our model shows are associated with and increase in BMI included Age, Diabetes, computer time, and the interaction of age and never married status. Other predictors associated with a decrease in BMI include alcohol, smoking, and having little interest in doings things most days. These three are clearly factors that are associated with other poor quality of life states. In the end, the modifiable predictors from our model that may improve BMI are limiting or mitigating computer time (sitting), marriage (perhaps encouraging meaningful connections with other people) and improving general health.
+If we instead look at the model from an explainability perspective, we see some significant factors affecting BMI. Some of the predictors that our model shows are associated with an increase in BMI including Age, Diabetes, computer time, and the interaction between age and "never married" status. Other predictors associated with a decrease in BMI include alcohol, smoking, and having little interest in doings things most days. These three are clearly factors that are associated with other poor quality of life states. In the end, the modifiable predictors from our model that may improve BMI are limiting or mitigating computer time (sitting), marriage (perhaps encouraging meaningful connections with other people) and improving general health.
 
 In conclusion, we found this project to be very educational and the skills learned in this class very powerful. The NHANES data is useful for the investigation of obesity, and utilizing a more complete NHANES dataset would likely be even more insightful.
 
