@@ -114,6 +114,7 @@ summary(imp)
 
 Now we build and run the stepwise process to select predictors. Notice that our 5 datasets with observed and imputed data are passed to the stepwise function using `with()` which in this case returns a `mira` object from the `mice` package.
 ```{r}
+
 # build the stepwise workflow
 scope <- list(upper = ~ Age +  Age1stBaby +  AlcoholYear +  Marijuana +  SmokeNow +  HardDrugs +  BPDiaAve +  BPSysAve +  PhysActiveDays +  TVHrsDay +  CompHrsDay +  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +  nPregnancies +   Poverty +  SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus + Age:Age1stBaby +  Age:AlcoholYear +  Age:Marijuana +  Age:SmokeNow +  Age:HardDrugs +  Age:BPDiaAve +  Age:BPSysAve +  Age:PhysActiveDays  +  Age:CompHrsDay +  Age:TotChol +  Age:Diabetes +  Age:UrineVol1 +  Age:HealthGen +  Age:LittleInterest +  Age:nPregnancies +   Age:Poverty +  Age:SleepHrsNight +  Age:Gender +  Age:Race1 +  Age:Education +  Age:MaritalStatus,
              lower = ~ 1)
@@ -349,4 +350,105 @@ hist((NHANES$Poverty))
 
 Based on the above findings, we may want to log transform BPSysAve, and TotChol, and consider a square transform of BPDiaAve. I think SleepHrsNight is best left alone, and I do not know what to make of the Poverty levels.
 
+
+#### Compare smaller model 
+
+```{r}
+fit_add_aic_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+# removing UrineVol1 
+fit_add_aic_without =with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+anova(fit_add_aic_without, fit_add_aic_with)
+```
+
+```{r}
+fit_add_aic_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+# removing TocChol
+fit_add_aic_without =with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+anova(fit_add_aic_without, fit_add_aic_with)
+```
+
+#### Try step back with added interaction terms
+
+
+```{r}
+# build the stepwise workflow using our fit_add_aic 
+# with interaction terms added as a starting point
+scope <- list(upper = ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:AlcoholYear +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay + Age:CompHrsDay +  Age:TotChol +  Age:Diabetes +  Age:UrineVol1 +  Age:HealthGen +  Age:LittleInterest +  Age:SleepHrsNight +  Age:Race1 +  Age:MaritalStatus,
+             lower = ~ 1)
+expr <- expression(f1 <- lm(log(BMI) ~ 1),
+                  f2 <- step(f1, scope = scope, trace = 0))
+# perform the stepwise selection with each of the 5 imputed datasets
+fit <- with(imp, expr)
+
+# count the votes for variables to keep
+formulas <- lapply(fit$analyses, formula)
+terms <- lapply(formulas, terms)
+votes <- unlist(lapply(terms, labels))
+table(votes)
+
+```
+
+Build the model with all the above predictors with > 3 votes
+
+```{r}
+fit_int_aic = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+summary(fit_int_aic$analyses[[1]])
+```
+
+Consider taking out `Age:TVHrsDay`
+
+```{r}
+fit_int_aic_with = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+# removing Age:TVHrsDay
+fit_int_aic_without =with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+anova(fit_int_aic_without, fit_int_aic_with)
+```
+
+
+log transformation of BP measures
+
+```{r}
+fit_int_aic_trns = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  I(BPDiaAve^2) + log1p(BPSysAve) + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) +  Age:log1p(BPSysAve)  + Age:TVHrsDay + Age:CompHrsDay  +  Age:Diabetes +  Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+summary(fit_int_aic_trns$analyses[[1]])
+```
+
+```{r}
+
+sum(cooks.distance(fit_int_aic_trns$analyses[[3]]) > 4 / length(cooks.distance(fit_int_aic_trns$analyses[[3]])))
+
+imp_df_1 = imp_df[imp_df$.imp == 1, ]
+
+test = lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  I(BPDiaAve^2) + log1p(BPSysAve) + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) +  Age:log1p(BPSysAve)  + Age:TVHrsDay + Age:CompHrsDay  +  Age:Diabetes +  Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = imp_df_1)
+summary(test)
+```
 
