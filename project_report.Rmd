@@ -3,10 +3,10 @@ title: "NHANES Data Analysis Project"
 author: "STAT 420, Summer 2023, Preeti Agrawal, Thimira Bandara, Michael Conlin, Constatin Kappel"
 date: "August 4, 2023"
 output:
+  pdf_document: default
   html_document: 
     theme: readable
     toc: yes
-  pdf_document: default
 urlcolor: cyan
 ---
 
@@ -235,13 +235,34 @@ See Appendix for density plots comparing the imputed and observed values.
 Now that imputation is complete to address the missing data, we will build a complete additive model using the variables we decided to keep earlier, to allow for an initial diagnostic evaluation.
 
 ```{r}
+# function to report simple results from model
+
+p_value_funct = function(modelobject) {
+f = summary(modelobject)$fstatistic
+p = pf(f[1],f[2],f[3],lower.tail=FALSE)
+attributes(p) = NULL
+return(p)
+}
+
+model_summary = function(model){
+  model_name = deparse(substitute(model))
+  fit_summary <- data.frame(model = model_name, adj_r_squared = summary(model)$adj,
+                            p_val = format(p_value_funct(model), scientific = TRUE))
+  knitr::kable(fit_summary, col.names = c("Model", "Adj. R-Squared", "P-Value"),
+               digits = 32, caption = "Model Assessment Summary", align = "lcc")
+}
+```
+
+#### Additive Model
+
+```{r}
 # perform the linear regression with each of the 5 imputed datasets
 fit_add <- with(imp, lm(BMI ~  Age +  AlcoholYear + Marijuana + SmokeNow +
   HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
   TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
   SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus))
 
-summary(fit_add$analyses[[1]]) #summary of the model with the 1st imputed dataset
+model_summary(fit_add$analyses[[1]]) #summary of the model with the 1st imputed dataset
 ```
 
 We will next construct a dataframe of all of our 5 imputed datasets, with the additional values
@@ -336,7 +357,7 @@ fit_add_log <- with(imp, lm(log(BMI) ~  Age +  AlcoholYear + Marijuana + SmokeNo
   TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
   SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus))
 
-summary(fit_add_log$analyses[[1]]) #summary of the model with the 1st imputed dataset
+model_summary(fit_add_log$analyses[[1]]) #summary of the model with the 1st imputed dataset
 ```
 
 ```{r, fig.asp=1}
@@ -349,6 +370,8 @@ plot(fitted(fit_add_log$analyses[[1]]), resid(fit_add_log$analyses[[1]]), col = 
      xlab = "Fitted", ylab = "Residuals", main = "Fitted vs Residuals - log(BMI)")
 abline(h=0,col = "darkorange")
 ```
+
+
 The log transformation of BMI model looks much better, though still not perfect. 
 
 Now let's look at the Q-Q plots:
@@ -393,6 +416,8 @@ table(votes)
 
 If we use the criterion of more than half of the datasets resulted in selection of a variable, we end up only dropping Education, Gender, and Marijuana. Let's compare the models using anova, leaving out variables with less than 5 votes.
 
+*Anova Predictor Pruning*
+
 ```{r}
 # remove HardDrugs
 model_without = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
@@ -408,35 +433,8 @@ anova(model_without, model_with)
 
 This p-value is not significant, so we fail to reject the null hypothesis and we can discard `HardDrugs`.
 
-```{r}
-# remove PhysActiveDays
-model_without = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
-  SleepHrsNight +  Race1  +  MaritalStatus))
-model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
-  SleepHrsNight +  Race1  +  MaritalStatus))
-anova(model_without, model_with)
-```
-
-Again, we fail to reject the null hypothesis based on the p-value, and can remove `PhysActiveDays`.
-
-```{r}
-# remove Poverty
-model_without = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus))
-model_with = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
-  SleepHrsNight +  Race1  +  MaritalStatus))
-anova(model_without, model_with)
-```
-
-This p-value is again greater than 0.05, and so we will remove `Poverty` for now. 
+We also apply this same anova nested model approach for possible predictor pruning to the variables `PhysActiveDays` and `Poverty`. The analyses are available in the appendix.
+Based upon the p-values for the following two tests, we fail to reject the null hypothesis for both, and can remove `PhysActiveDays`, and `Poverty`.
 
 Here is the final model of this process which we will call `fit_add_aic`
 
@@ -445,7 +443,7 @@ fit_add_aic = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
   SleepHrsNight +  Race1  +  MaritalStatus))
-summary(fit_add_aic$analyses[[1]])$r.squared
+model_summary(fit_add_aic$analyses[[1]])
 
 ```
 Let's try a forward search using BIC, and see if we get a smaller model:
@@ -508,14 +506,15 @@ There appear to be no major issues with collinearity in this additive model.
 
 #### Further Predictor Exploration 
 
-Additionally, we want to check which variables from this addditive model are correlated with BMI to further investigate possible interaction terms, and determine if there are additional variables we could consider dropping.  
+Additionally, we want to check which variables from this addditive model are correlated with BMI to further investigate possible interaction terms, and determine if there are additional variables we could consider dropping. 
+
+*Correlation Plot*
 
 ```{r}
 library("corrplot")
 
 # Subset the 'nhanes' dataset using the names of numerical columns in 'numerical_data'
-nhanes_numerical_subset = nhanes_select[, c('Age', 'AlcoholYear', 'BPDiaAve', 'BPSysAve', 'UrineVol1',
-                                            'SleepHrsNight', 'TotChol' ,'BMI')]  
+nhanes_numerical_subset = nhanes_select[, c('Age', 'AlcoholYear', 'BPDiaAve', 'BPSysAve', 'UrineVol1', 'SleepHrsNight', 'TotChol' ,'BMI')]  
 
 # Calculate the correlation matrix for 'nhanes_numerical_subset'
 cor_matrix  = cor(nhanes_numerical_subset, use = "complete.obs")
@@ -525,66 +524,19 @@ corrplot(cor_matrix, type = "upper", tl.cex = 0.8, tl.col = "black", tl.srt = 45
 
 ```
 
+Based upon the findings of the numerical data correlation plot above, there seems to be little if any correlation between `UrineVol1` and `TotChol` individually and BMI. Because of this finding seems reasonable to try removing both `UrineVol1` and `TotChol` from the model, and evaluate this removal with anova nested model method.
 
-```{r}
+*Chi-square Analysis of Categorical Variables*
 
-if (!require(vcd)) {
-  install.packages("vcd", quiet = TRUE)  
-}
+We performed a Chi-square analysis to assess individual categorical variable correlation with BMI, in hope we might find variables that we could consider dropping from our models. The code and results are available in the appendix section of this document. We found that all the p-values from the chi-square tests of the categorical values are very small, so each of these variables were left in the model.
 
-library(vcd)
+*Anova Predictor Pruning*
 
-# Subset the 'nhanes' dataset using the names of categorical columns in 'categorical_data'
-nhanes_categorical_subset = nhanes_select[, c('SmokeNow', 'TVHrsDay', 'CompHrsDay','Diabetes',
-                                              'HealthGen', 'LittleInterest', 'Race1', 
-                                              'MaritalStatus', 'BMI')]   
-
-# Assuming 'nhanes_categorical_subset' already contains the 'BMI' column and categorical variables
-
-# Perform a Chi-square test for each categorical variable
-for (var in names(nhanes_categorical_subset)) {
-  if (is.factor(nhanes_categorical_subset[[var]])) {
-    chi_result <- chisq.test(nhanes_categorical_subset[[var]], nhanes_categorical_subset$BMI)
-    print(paste("Variable:", var))
-    print(chi_result)
-  }
-}
-
-```
-Since all the p-values for the categorical values above are very small, we do not sneed to remove them. 
-However, based upon the findings of the numerical data above, it seems reasonable to try removing both `UrineVol1` and `TotChol`, as their individual correlations with BMI are negligible.
-
-First we will try removing `UrineVol1` at a significance level $\alpha = 0.01$:
-
-```{r}
-fit_add_aic_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus))
-# removing UrineVol1 
-fit_add_aic_without =with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus))
-anova(fit_add_aic_without, fit_add_aic_with)
-```
+Now we will try removing `UrineVol1` at an anova significance level of $\alpha = 0.01$. The anova analysis details are in the appendix.
 
 Since the p-value of the anova test comparing the models with and without `UrineVol` is greater than 0.01, we fail to reject the null hypothesis, and should remove the variable.
 
-Now let's consider removing `TotChol` at a significance level $\alpha = 0.01$.
-
-```{r}
-fit_add_aic_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  TotChol +  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus))
-# removing TotChol
-fit_add_aic_without =with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus))
-anova(fit_add_aic_without, fit_add_aic_with)
-```
+Now let's consider removing `TotChol` at a significance level $\alpha = 0.01$. Again, the anova analysis details are in the appendix.
 
 Likewise, the p-value is greater than 0.01, although it is less than 0.05, so for now we can leave it.
 
@@ -595,7 +547,7 @@ final_add = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   TotChol +  Diabetes +  HealthGen +  LittleInterest +
   SleepHrsNight +  Race1  +  MaritalStatus))
-summary(final_add$analyses[[1]])
+model_summary(final_add$analyses[[1]])
 ```
 
 
@@ -636,49 +588,18 @@ fit_int_aic = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
   Diabetes +  HealthGen +  LittleInterest +
   SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
   + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
-summary(fit_int_aic$analyses[[1]])
+model_summary(fit_int_aic$analyses[[1]])
 ```
 
-We conduct an anova test to check if we should keep `Age:TVHrsDay` or not as the individual p-values are not significant.
+*Anova Predictor Pruning*
 
-```{r}
+We conduct an anova test to check if we should keep `Age:TVHrsDay` as the individual p-values from the model are not significant.
 
-fit_int_aic_with = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  
-  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
-
-# removing Age:TVHrsDay
-fit_int_aic_without =with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
-  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
-anova(fit_int_aic_without, fit_int_aic_with)
-```
-
-The p-value is less than 0.05, so for now, we will keep `Age:TVHrsDay`.
+The p-value from the anova nested model study is less than 0.05, so for now, we will keep `Age:TVHrsDay`. The details from this anova study are presented in the appendix.
 
 We also notice from the model that the the p-values for `Race1` categories and their interaction terms are not significant, and the estimates are low. Perhaps we can remove Race1, and the interaction term.
 
-```{r}
-fit_int_aic_with = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
-  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
-
-# removing Age:Race1 and interaction
-fit_int_aic_without =with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
-  +  Age:Diabetes +   Age:HealthGen +  Age:MaritalStatus))
-anova(fit_int_aic_without, fit_int_aic_with)
-```
-
-The p-value is very low, less than 0.01, so we reject the null hypothesis, and will keep `Race1` and the related interaction term.
+The p-value from the anova nested model study is very low, less than 0.01, so we reject the null hypothesis, and will keep `Race1` and the related interaction term. The details from this anova study are presented in the appendix.
 
 So our final model with the addition of interactions is `final_int`, and is given below:
 
@@ -688,12 +609,12 @@ final_int = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
   Diabetes +  HealthGen +  LittleInterest +
   SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  
   + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
-summary(final_int$analyses[[1]])
+model_summary(final_int$analyses[[1]])
 ```
 
 #### Data Transformations
 
-Now we will consider if our model will benefit from any data transformations. The two numerical variables we are most suspicious of having skewed distributions are those related to blood pressure. Let's graph each of their distributions. We are using the imputed data, but only one of the 5 imputed datasets.
+Now we will consider if our model will benefit from any data transformations. The numerical values present in our current model that are available for possible transformation are `Age, AlcoholYear, BPSysAve, BPDiaAve`. We investigated each, and we found that `Age` had a fairly uniform distribution, perhaps as a result of the NHANES population sampling methodologies. We also found that `AlcoholYr` did not seem to be a continuous distribution, so we did not consider transforming either of these two numerical variables. The two numerical variables we felt might have skewed distributions are those related to blood pressure. Let's graph each of their distributions. We are using the imputed data, but only one of the 5 imputed datasets.
 
 BPSysAve Transformation:
 
@@ -737,9 +658,12 @@ final_trns = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
 #Note: we apply log1p to get the natural log of (1+BPSysAve), as we were getting infinity
 #for 0 and NaN for negative values of BPSysAve with log(BPSysAve)
 
-summary(final_trns$analyses[[1]])
+model_summary(final_trns$analyses[[1]])
 ```
+
 We notice that our R-Squared is the same as without the transformed data, but this will represent our final transformation model and we will more fully compare all three models in the next section.
+
+## Results
 
 #### Final Models
 
@@ -752,10 +676,11 @@ log(BMI) ~ Age +  AlcoholYear + SmokeNow + BPDiaAve + BPSysAve + TVHrsDay + Comp
 log(BMI) ~  Age +  AlcoholYear + SmokeNow + BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay + Diabetes +  HealthGen + LittleInterest + SleepHrsNight +  Race1  +  MaritalStatus + Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay + Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus
 
 
-*Model with Transformation & Interactions*
+*Model with Transformations & Interactions*
 log(BMI) ~ Age +  AlcoholYear + SmokeNow + I(BPDiaAve^2) + log1p(BPSysAve) + TVHrsDay + CompHrsDay + Diabetes + HealthGen +  LittleInterest + SleepHrsNight +  Race1  + MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) + Age:log1p(BPSysAve)  + Age:TVHrsDay +  Age:Diabetes + Age:HealthGen +  Age:Race1 +  Age:MaritalStatus
 
 We arrived at these models using the following steps:
+
 1. Ruled out many variables by grouping them into similar domains and keeping only one representative variable in case we detected collinearity. This reduced the number of possible predictors from `r ncol(NHANES)-1` to `r ncol(nhanes_select)-1`.
 2. Dealt with missing data using multiple imputation using the `mice` package. 
 3. Fitted a first version of an additive model with the selected predictors and detected violations of equal variance and normality. 
@@ -763,9 +688,9 @@ We arrived at these models using the following steps:
 5. Performed AIC and BIC stepwise processes and conducted anova tests to reduce the number of predictors further.
 6. Tested interaction of `Age` with other predictors as well as transformations of `BPDiaAve`, `BPSysAve`. 
 
-## Results
 
-#### Outlier Assessment
+
+#### Outlier Assessment of Final Models
 
 For each of the 3 models, we would  now like to see if there are any outliers that are influential, and that are having a large effect on our regressions. We will conduct this assessment using Cook's Distance. 
 
@@ -825,6 +750,26 @@ final_trns = lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow + I(BPDiaAve^2) +
                 data = imp_df_1_trns_rm)
 ```
 
+#### Summary Results of Final Models
+
+*Additive Model*
+
+```{r}
+summary(final_add)
+```
+
+*Model with Interactions*
+
+```{r}
+summary(final_int)
+```
+
+
+*Model with Transformation & Interactions*
+
+```{r}
+summary(final_trns)
+```
 
 ### Model Diagnostics
 
@@ -867,7 +812,9 @@ knitr::kable(results_table, col.names = col_names, caption = "Model Comparison")
 ```
 
 As we see from the table above, we have been able to build 3 models which can explain more than 49% of the variability in the dataset, according to adjusted $R^2$.
-As far as adjusted $R^2$ is concerned, the interaction model and the transformed model perform better than the additive model, by explaining about 7.5% more of the variability. All models have issues with heteroskedasticity and violation of normality assumptions according to the Breusch-Pagan and Shapiro-Wilk tests, respectively. 
+As far as adjusted $R^2$ is concerned, the interaction model and the transformed model perform better than the additive model, by explaining about 7.5% more of the variability. All models have issues with heteroscedasticity and violation of normality assumptions according to the Breusch-Pagan and Shapiro-Wilk tests, respectively.
+
+#### Model Assessment - Train/Test Split
 
 Next, we'll split the data into testing and training sets to see how these 3 models compare when we evaluate the LOOCV-RMSE on the training (unseen) data. 
 
@@ -943,7 +890,8 @@ predicted_trns2 = exp(predict(final_trns2, newdata = trns_tst_data))
 avg_pct_error_trns2 = mean(abs(predicted_trns2 - trns_tst_data$BMI)
                      /predicted_trns2) * 100 
 
-rmse_results2 = c(calc_loocv_rmse(final_add2), calc_loocv_rmse(final_int2), calc_loocv_rmse(final_trns2))
+rmse_results2 = c(calc_loocv_rmse(final_add2), calc_loocv_rmse(final_int2),
+                  calc_loocv_rmse(final_trns2))
 avg_pct_error2 = c(avg_pct_error_add2, avg_pct_error_int2, avg_pct_error_trns2)
 
 results_table2 = cbind(row_names, round(rmse_results2,6), round(avg_pct_error2,6))
@@ -1011,7 +959,8 @@ pairs(subset(NHANES, select = to_test))
 Smoking and Drug related variables:
 
 ```{r, fig.asp=1}
-to_test = c("SmokeNow", "Smoke100", "SmokeAge", "Marijuana", "RegularMarij", "AgeRegMarij", "HardDrugs")
+to_test = c("SmokeNow", "Smoke100", "SmokeAge", "Marijuana",
+            "RegularMarij", "AgeRegMarij", "HardDrugs")
 pairs(subset(NHANES, select = to_test))
 
 ```
@@ -1019,7 +968,8 @@ pairs(subset(NHANES, select = to_test))
 Lifestyle related variables:
 
 ```{r, fig.asp=1}
-to_test = c("PhysActive", "PhysActiveDays", "TVHrsDay", "CompHrsDay", "TVHrsDayChild", "CompHrsDayChild")
+to_test = c("PhysActive", "PhysActiveDays", "TVHrsDay",
+            "CompHrsDay", "TVHrsDayChild", "CompHrsDayChild")
 pairs(subset(NHANES, select=to_test))
 ```
 
@@ -1040,7 +990,8 @@ pairs(subset(NHANES, select = to_test))
 Mental health related variables:
 
 ```{r, fig.asp=1}
-to_test = c("HealthGen", "DaysPhysHlthBad", "DaysMentHlthBad", "LittleInterest", "Depressed" )
+to_test = c("HealthGen", "DaysPhysHlthBad", "DaysMentHlthBad",
+            "LittleInterest", "Depressed" )
 pairs(subset(NHANES, select = to_test))
 ```
 
@@ -1050,5 +1001,139 @@ pairs(subset(NHANES, select = to_test))
 # Compare the imputed variables (red) and observed (blue)
 densityplot(imp)
 # summary(imp)
+```
+
+#### Chi-Square Analysis of Categorical Variable
+
+```{r}
+
+if (!require(vcd)) {
+  install.packages("vcd", quiet = TRUE)  
+}
+
+library(vcd)
+
+# Subset the 'nhanes' dataset using the names of categorical columns in 'categorical_data'
+nhanes_categorical_subset = nhanes_select[, c('SmokeNow', 'TVHrsDay', 'CompHrsDay','Diabetes',
+                                              'HealthGen', 'LittleInterest', 'Race1', 
+                                              'MaritalStatus', 'BMI')]   
+
+# Assuming 'nhanes_categorical_subset' already contains the 'BMI' column and categorical variables
+
+# Perform a Chi-square test for each categorical variable
+for (var in names(nhanes_categorical_subset)) {
+  if (is.factor(nhanes_categorical_subset[[var]])) {
+    chi_result <- chisq.test(nhanes_categorical_subset[[var]], nhanes_categorical_subset$BMI)
+    print(paste("Variable:", var))
+    print(chi_result)
+  }
+}
+
+```
+
+#### Anova Predictor Pruning
+
+Additive Model Anova Studies:
+
+```{r}
+# remove PhysActiveDays
+model_without = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+anova(model_without, model_with)
+```
+
+
+```{r}
+# remove Poverty
+model_without = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+model_with = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+anova(model_without, model_with)
+```
+
+```{r}
+# remove HardDrugs
+model_without = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+model_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  HardDrugs + BPDiaAve + BPSysAve + PhysActiveDays + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+anova(model_without, model_with)
+```
+
+```{r}
+fit_add_aic_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+# removing UrineVol1 
+fit_add_aic_without =with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+anova(fit_add_aic_without, fit_add_aic_with)
+```
+
+```{r}
+fit_add_aic_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  TotChol +  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+# removing TotChol
+fit_add_aic_without =with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus))
+anova(fit_add_aic_without, fit_add_aic_with)
+```
+
+Interaction Model Anova Studies:
+
+```{r}
+
+fit_int_aic_with = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  
+  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+
+# removing Age:TVHrsDay
+fit_int_aic_without =with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
+  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+anova(fit_int_aic_without, fit_int_aic_with)
+```
+
+
+```{r}
+fit_int_aic_with = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
+  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+
+# removing Age:Race1 and interaction
+fit_int_aic_without =with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
+  +  Age:Diabetes +   Age:HealthGen +  Age:MaritalStatus))
+anova(fit_int_aic_without, fit_int_aic_with)
 ```
 
