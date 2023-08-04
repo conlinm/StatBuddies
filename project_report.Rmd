@@ -1,7 +1,7 @@
 ---
 title: "NHANES Data Analysis Project"
 author: "STAT 420, Summer 2023, Preeti Agrawal, Thimira Bandara, Michael Conlin, Constatin Kappel"
-date: "2023-07-26"
+date: "August 4, 2023"
 output:
   pdf_document: default
   html_document: 
@@ -15,35 +15,40 @@ options(scipen = 1, digits = 4, width = 80, fig.align = "center")
 library(knitr)
 ```
 
+
 # Title
 
 ## Introduction
 
 Obesity is an endemic health issue common to many industrialized nations in the world. It is known that obesity is related to cardiovascular disease (high blood pressure, heart attack, stroke), type II diabetes, sleep apnea, metabolic syndrome, fatty liver disease and cancer [CDC on obesity](https://www.cdc.gov/healthyweight/effects/index.html). According to the World Health Organization, [WHO](https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight), obesity has nearly tripled between 1975 and 2021, in a time frame of less than two generations. Obesity can be measured by the BMI, is therefore a relevant health issue. The threshold of calling someone obese is a BMI $\geq$ 30.   
 
-Our personal interest in obesity is for once that two members of this team have a background in biochemistry and medicine, respectively, and that still obesity represents a health issue which everyone knows and can observe in everyday life. So, while there is a bio-medical relevance of the topic, the concept of BMI or the phenomenon of obesity do not require everyone to have a deep domain-specific knowledge. In fact, none of us directly worked scientifically with obesity before and thus we saw it as a new and challenging topic to work on. 
+Our personal interest in obesity is comes from the fact that two members of this team have a background in biochemistry and medicine, respectively, and that obesity still represents a health issue which everyone knows and can observe in everyday life. So, while there is a bio-medical relevance of the topic, the concept of BMI or the phenomenon of obesity do not require everyone to have a deep domain-specific knowledge. In fact, none of us directly worked scientifically with obesity before and thus we saw it as a new and challenging topic to work on. 
 
-We are using the "the non-institutionalized civilian resident population of the United States" (NHANES) dataset. It has been published by the *American National Health and Nutrition Examination surveys" since the 1960s. The full data thus covers the relevant time frame which saw the drastic increase in obesity as reported by the WHO. The full data can be obtained from [CDC.gov](http://www.cdc.gov/nchs/nhanes.htm). 
+We are using the "the non-institutionalized civilian resident population of the United States" (NHANES) dataset. It has been published by the "American National Health and Nutrition Examination surveys" since the 1960s. The full data thus covers the relevant time frame which saw the drastic increase in obesity as reported by the WHO. The full data can be obtained from [CDC.gov](http://www.cdc.gov/nchs/nhanes.htm). 
 We are using a subset of NHANES which is easily accessible through the R library `NHANES`. It comprises a subset of 10,000 rows and covers a survey period between 2009 and 2012. While not comprehensive it should give us enough material to build a model, select different predictors and reason about its predictions. Our goal is to build an interpretable model which identifies and quantifies the influence of several physical and life style-related predictors on body weight, specifically the BMI.
 
-In order to build an interpretable model we need to be mindful with non-linear data transformations, high-order interactions and also need to keep variance inflation under control. The task is made challenging by a large number of missing values. If we simply omit all `NA`s using `na.omit()`, which discards all rows with any missing value, we will reduce the total information from 10,000 to `r nrow(na.omit(NHANES))`, so less than 1%. 
+In order to build an interpretable model we need to be mindful with non-linear data transformations, high-order interactions and also need to keep variance inflation under control. The task is made challenging by a large number of missing values. If we simply omit all `NA`s using `na.omit()`, which discards all rows with any missing value, we will reduce the total information from 10,000 observations to less than 1%. 
 
 Our strategy outline for approaching this project is as follows:
 
-1. Variable (i.e. predictor) selection using a combination of semantic grouping (some variables convey similar information) and collinearity (visually, through `pairs()` plots). 
-1. With a subset of predictors, which we call `nhanes_select` and omitting all `NA`s we build a first reduced model to check parameter estimates, p-values, significance of regression as well as testing LINE assumptions. 
-1. We then approach the problem of missing data by using multivariate imputation by chained equations [MICE](https://doi.org/10.18637/jss.v045.i03) using the `mice` library by Buuren and Groothuls-Outhoorn (2011).  
-1. With 5 versions of imputed data we rebuild our model and use a stepwise process with AIC to select the parameters and their interactions for our model. 
-1. Lastly, we apply a log transformation to BMI and other non-linear transformations to some of the predictors to build a more predictive model.
+1. Variable, that is, predictor selection using a combination of semantic grouping (some variables convey similar information) and collinearity (visually, through `pairs()` plots). 
+2. With a subset of predictors, which we call `nhanes_select`, we then approach the problem of missing data by using multivariate imputation by chained equations [MICE](https://doi.org/10.18637/jss.v045.i03) using the `mice` library by Buuren and Groothuls-Outhoorn (2011). 
+3. After omitting all `NA`s, and with 5 versions of the imputed data, we build our first additive model to check parameter estimates, p-values, significance of regression as well as testing LINE assumptions.
+4. Next we apply a Box-Cox transformation to BMI and use different search procedures, backwards, forwards, and stepwise to search for models and select predictors.
+5. After this we check which variables are correlated with BMI to further investigate possible interaction terms, and determine if there are other variables we could consider dropping.
+6. We then consider if our models of interest could benefit from any data transformations.
+7. Finally, we perform outlier assessment and diagnostics on our models of interest to evaluate them and explain which model(s) we prefer.  
 
 ## Methods
 
 ### Data Import
 
-```{r eval=FALSE}
+```{r}
 if (!require(NHANES)) {
   install.packages("NHANES", quiet = TRUE)  
 }
+library(NHANES, quiet = TRUE)
+
 ```
 
 ### Initial Variable Selection
@@ -56,11 +61,11 @@ We have chosen `BMI` (Body mass index (weight/height² in $[\frac{kg}{m²}]$) as
 sort(names(NHANES)) # alphabetic order
 ```
 
-We will add all omitted variables to a data frame `df_exclude`. The variables we would like to use as predictors will be kept in a dataframe `df_keep`. The following is our reasoning for ruling out or keeping certain variables as predictors:
+We will add all omitted variables to a dataframe `df_exclude`. The variables we would like to use as predictors will be kept in a dataframe `df_keep`. The following is our reasoning for ruling out or keeping certain variables as predictors:
 
 1. Some predictors can be ruled out right away. Our response variable is `BMI`, so we should not use body `Weight` or `Height` as predictors, because `BMI` is calculated by dividing the `Weight` by `Height`.  
 
-2. The next group of predictors seems very closely related either by name or logic deduction, for example, age related variables such as `Age`, `AgeDecade`, `AgeMonths`. Let's quickly double-check if they are linearly related: 
+2. The next group of predictors seem very closely related either by name or logic deduction, for example, age related variables such as `Age`, `AgeDecade`, `AgeMonths`. Let's quickly double-check if they are linearly related: 
 
 ```{r, fig.asp={1}}
 pairs(subset(NHANES, select = c('Age', 'AgeDecade', 'AgeMonths',
@@ -94,12 +99,12 @@ Urine volume and urine flow appear collinear. Moreover, there might be collinear
 
 9. Next we analyze a somewhat heterogenic group of variables related to health or mental health. For example, somebody who is depressed might show little interest in doing things. Again, collinearity is not easy to spot in categorical variables. Let's pick `LittleInterest` as a mild form of mental health issue which might lead to little physical activity and obesity, and `HealthGen` as a general health rating. 
 
-10. We decided to keep `Poverty` which is a ratio of family income to poverty guidelines, and drop `HHIncomeMid` and `HHIncome`, as they both capture similar information to what the `Poverty` variable captures. Similarly, we chose to keep `Race1` instead of `Race3` as they both capture similar information, and `Race1` has more data compared to `Race3`.
+10. We decide to keep `Poverty` which is a ratio of family income to poverty guidelines, and drop `HHIncomeMid` and `HHIncome`, as they both capture similar information to what the `Poverty` variable captures. Similarly, we choose to keep `Race1` instead of `Race3` as they both capture similar information, and `Race1` has more data compared to `Race3`.
 
 11. Finally, let's add `Poverty`, `SleepHrsNight`, `Gender`, `Race1`, `Education`, and `MartialStatus` as we believe they can have an effect on BMI, and we do not suspect collinearity.  
 
 ```{r }
-#Setting up the data frames with the variables we will be excluding and keeping for model building
+#Setting up the dataframes with the variables we will be excluding and keeping for model building
 
 df_exclude = data.frame(predictor = c('Weight', 'Height', 'Age1stBaby', 'AgeDecade', 'AgeMonth',
                                       'AgeRegMarij', 'Alcohol12PlusYr', 'AlcoholDay', 'Smoke100',
@@ -124,8 +129,10 @@ reason_to_omit = c('linear dependence with BMI','linear dependence with BMI', 's
                    with HealthGen','redundant with HealthGen', 'redundant with Race1', 'specific by 
                    Gender'))
 
-df_keep = data.frame(predictor = c('SurveyYr', 'Age', 'AlcoholYear', 'Marijuana', 'SmokeNow', 'HardDrugs', 
-                                   'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 
+#Note: 'SurveyYr' is not a predictor, we will be filtering data by SurveyYr later,after which we 
+#will remove SurveyYr from the predictor list.
+df_keep = data.frame(predictor = c('SurveyYr', 'Age', 'AlcoholYear', 'Marijuana', 'SmokeNow', 
+                                   'HardDrugs', 'BPDiaAve', 'BPSysAve', 'PhysActiveDays', 'TVHrsDay', 
                                    'CompHrsDay', 'TotChol', 'Diabetes', 'UrineVol1', 'HealthGen',
                                    'LittleInterest', 'Poverty', 'SleepHrsNight', 'Gender', 
                                    'Race1', 'Education', 'MaritalStatus' ))
@@ -141,10 +148,11 @@ Furthermore, the NHANES dataset has data for 2 survey years: 2009-10 and 2011-12
 
 ```{r}
 nhanes_select = subset(NHANES, select =c(df_keep$predictor, "BMI"))
-nhanes_select = nhanes_select[nhanes_select$SurveyYr == '2011_12', ] #filtering by year
-nhanes_select = subset(nhanes_select, select = -c(SurveyYr)) #removing SurveyYr as a column for model building
+nhanes_select = nhanes_select[nhanes_select$SurveyYr == '2011_12', ] #filtering by survey year
+nhanes_select = subset(nhanes_select, select = -c(SurveyYr)) #removing SurveyYr as a column for 
+#model building
 ```
-The resulting dataset, after the initial variable selection above, consists of `r nrow(nhanes_select)` observations (rows) and `r ncol(nhanes_select)` variables (columns) including `BMI` and the chosen predictors.
+The resulting dataset, after the initial variable selection and filtering above, consists of `r nrow(nhanes_select)` observations (rows) and `r ncol(nhanes_select)` variables (columns) including `BMI` and the chosen predictors.
 
 
 **Convert Categorical Variables into Factor Variables**
@@ -173,7 +181,7 @@ It would be helpful to have a dataset which is devoid of NAs (missing values) be
 **Identify which variables have majority Nan values**
 
 ```{r}
-library(tidyverse, quietly = TRUE)
+library(tidyverse, quiet = TRUE)
 
 # Count the NA values in each column
 na_counts = colSums(is.na(nhanes_select))
@@ -182,7 +190,7 @@ na_counts = colSums(is.na(nhanes_select))
 total_rows = nrow(nhanes_select)
 na_percentage = (na_counts / total_rows) * 100
 
-# Create a data frame to store the results
+# Create a dataframe to store the results
 na_summary = data.frame(Column = names(na_counts), NA_Count = na_counts, NA_Percentage = na_percentage)
 na_summary = na_summary %>%
   arrange(desc(NA_Percentage))
@@ -192,7 +200,7 @@ print(na_summary)
 
 ```
 
-The table above is sorted according to NA percentage in descending order. The top 5 predictors as far as NAs are concerned are: `SmokeNow`, `PhysActiveDays`, `TVHrsDay`, `CompHrsDay` and `Marijuana`. Half of all predictors have greater than 25% missing values. If we eliminated all rows with any missing value, we would be left with only `r nrow(na.omit(nhanes_select))`, which is not enough observations to be meaningful. We cannot simply proceed using this data, as any regression tools we will use will need to eliminate many observations in order to proceed with the statistical calculations. It would also be inappropriate to simply eliminate these observations, although this was previously the standard approach. Eliminating this many observations would bring into question how well our study models represent the underlying population. Interpretation of our results would become more difficult, and suspicious of selective observation elimination introducing bias. This data was also costly to produce - we prefer to not simply cast it aside. We therefore decided to perform data imputation for the missing data. 
+The table above is sorted according to NA percentage in descending order. The top 5 predictors as far as NAs are concerned are: `SmokeNow`, `PhysActiveDays`, `Marijuana`, `HardDrugs` and `AlcoholYr`. Half of all predictors have greater than 25% missing values. If we eliminated all rows with any missing value, we would be left with only `r nrow(na.omit(nhanes_select))`, which is not enough observations to be meaningful. We cannot simply proceed using this data, as any regression tools we will use will need to eliminate many observations in order to proceed with the statistical calculations. It would also be inappropriate to simply eliminate these observations, although this was previously the standard approach. Eliminating this many observations would bring into question how well our study models represent the underlying population. Interpretation of our results would become more difficult, and suspicious of selective observation elimination introducing bias. This data was also costly to produce - we prefer to not simply cast it aside. We therefore decided to perform data imputation for the missing data. 
 
 Data imputation involves the substitution of missing data with a different value. Although there are simple methods of replacing missing values with the mean or median of the variable in question, the most robust method is multiple imputation. Multiple imputation involves the generation of multiple complete datasets by replacing the missing values with data values which are modeled for each missing entry, from a plausible distribution. The imputation process can use a variety of methods for computing the imputed values, depending upon the underlying distribution of the observed values, and the relationship of those observed values and the other variables in the observation. Once the multiple complete datasets are generated, any analysis can be performed (such as linear regression) and the results of each analyses are pooled into one set of results.
 
@@ -211,7 +219,7 @@ First we will remove the observations where there is no entry for BMI as there a
 
 
 ```{r}
-library(mice, quietly = TRUE)
+library(mice, quiet = TRUE)
 # remove the rows which have NAs for BMI
 nhanes_imp = nhanes_select[!is.na(nhanes_select$BMI), ]
 
@@ -224,7 +232,7 @@ See Appendix for density plots comparing the imputed and observed values.
 
 ### Initial Model Building and Diagnostics
 
-Now that imputation is complete to address the missing data, we will build a complete additive model, to allow an initial diagnostic evaluation.
+Now that imputation is complete to address the missing data, we will build a complete additive model using the variables we decided to keep earlier, to allow for an initial diagnostic evaluation.
 
 ```{r}
 # perform the linear regression with each of the 5 imputed datasets
@@ -233,7 +241,7 @@ fit_add <- with(imp, lm(BMI ~  Age +  AlcoholYear + Marijuana + SmokeNow +
   TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
   SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus))
 
-summary(fit_add$analyses[[1]]) #summary of the 1st imputed dataset
+summary(fit_add$analyses[[1]]) #summary of the model with the 1st imputed dataset
 ```
 
 We will next construct a dataframe of all of our 5 imputed datasets, with the additional values
@@ -248,7 +256,7 @@ imp_df = mice::complete(imp, action = "long")
 When we built the additive model above, a few parameters had large p-values. Let's check the variance inflation factors for all the predictors in this model, to see if there is any effect of collinearity on the variance of our regression estimates.  
 
 ```{r}
-library(car)
+library(car, quiet = TRUE)
 car::vif(fit_add$analyses[[1]])
 ```
 
@@ -256,14 +264,10 @@ None of the variable appear to have a large (>5) variance inflation factor which
 
 #### Variance and Normality Assessment
 
-Now let's do some tests on this model to identify any potential issues.
+Now let's do some diagnostic tests on this model to identify any potential issues.
 
 ```{r}
 library(lmtest)
-if (!require(nortest)) {
-  install.packages("nortest", quiet = TRUE)  
-}
-library(nortest, quietly = TRUE)
 
 ### First, let's define some functions ###
 
@@ -274,10 +278,10 @@ calc_loocv_rmse = function(model) {
 
 # model diagnostics
 model_diagnostics = function(fit){
-  fit_summary <- data.frame(bptest_p = rep(0,5), ad_test = rep(0,5))
+  fit_summary <- data.frame(bptest_p = rep(0,5), shapirotest_p = rep(0,5))
   for (i in 1:5){
     fit_summary$bptest_p[i] = unname(bptest(fit$analyses[[i]])$p.value)
-    shapiro.test(residuals(fit$analyses[[i]]))$p.value 
+    fit_summary$shapirotest_p[i] = shapiro.test(residuals(fit$analyses[[i]]))$p.value 
   }
   knitr::kable(fit_summary, col.names = c("BP Test", "Shapiro Test"))
 }
@@ -315,7 +319,7 @@ qqline(resid(fit_add$analyses[[1]]), col = "darkorange")
 
 The Q-Q-Plot also shows deviations from normality. 
 
-Let's now look at the p-values from the AD Test for normality, and the Breusch-Pagan Test for Homoscedasticity.
+Let's now look at the p-values from the Shapiro-Wilk Test for normality, and the Breusch-Pagan Test for Homoscedasticity.
 
 ```{r}
 model_diagnostics(fit_add)
@@ -332,11 +336,11 @@ fit_add_log <- with(imp, lm(log(BMI) ~  Age +  AlcoholYear + Marijuana + SmokeNo
   TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest + Poverty +
   SleepHrsNight +  Gender +  Race1 +  Education +  MaritalStatus))
 
-summary(fit_add_log$analyses[[1]])
+summary(fit_add_log$analyses[[1]]) #summary of the model with the 1st imputed dataset
 ```
 
 ```{r, fig.asp=1}
-#Comparing the Fitted versus Residuals Plots of the Initial Additive model and the Log(BMI) Transformation Model
+#Comparing the Fitted versus Residuals Plots of the Initial Additive model and the Log(BMI) #Transformation Model
 par(mfrow=c(1,2))
 plot(fitted(fit_add$analyses[[1]]), resid(fit_add$analyses[[1]]), col = "darkblue", pch = 20,
      xlab = "Fitted", ylab = "Residuals", main = "Fitted vs Residuals - BMI")
@@ -363,7 +367,7 @@ qqline(resid(fit_add_log$analyses[[1]]), col = "darkorange")
 Again, the log transformation of BMI results is a much better appearing QQ plot. Moving forward, we will use the log transformed BMI for our model building.
 
 
-#### Model Selection
+#### Model Search for Selection
 
 Now we use the different search procedures, backwards, forwards, and stepwise to search for models and select predictors. Notice that our 5 datasets with observed and imputed data are passed to the stepwise function using `with()` which in this case returns a `mira` object from the `mice` package.
 
@@ -490,13 +494,12 @@ votes <- unlist(lapply(terms, labels))
 table(votes)
 ```
 
-Still same results. For now, our additive model will be `fit_add_aic`
+Here agin we get the same results. For now, our additive model will be `fit_add_aic`
 
-Before we move on, there are some predictors which are not significant individually, so we should check for collinearity again.
+Before we move on, there are some predictors which are not significant individually as we saw from the summary of the model earlier, so we should check for collinearity again.
 
 
 ```{r}
-library(car)
 car::vif(fit_add_aic$analyses[[1]])
 ```
 
@@ -504,14 +507,14 @@ There appear to be no major issues with collinearity in this additive model.
 
 #### Further Predictor Exploration 
 
-Additionally, we want to check which variables are correlated with BMI to further investigate possible interaction terms, and determine if there are varaibles we could again consider dropping.  
+Additionally, we want to check which variables from this addditive model are correlated with BMI to further investigate possible interaction terms, and determine if there are additional variables we could consider dropping.  
 
 ```{r}
 library("corrplot")
 
 # Subset the 'nhanes' dataset using the names of numerical columns in 'numerical_data'
-nhanes_numerical_subset = nhanes_select[, c('Age', 'AlcoholYear', 'BPDiaAve', 'BPSysAve', 'UrineVol1', 'SleepHrsNight', 'TotChol' ,'BMI')]  
-
+nhanes_numerical_subset = nhanes_select[, c('Age', 'AlcoholYear', 'BPDiaAve', 'BPSysAve', 'UrineVol1',
+                                            'SleepHrsNight', 'TotChol' ,'BMI')]  
 
 # Calculate the correlation matrix for 'nhanes_numerical_subset'
 cor_matrix  = cor(nhanes_numerical_subset, use = "complete.obs")
@@ -531,7 +534,9 @@ if (!require(vcd)) {
 library(vcd)
 
 # Subset the 'nhanes' dataset using the names of categorical columns in 'categorical_data'
-nhanes_categorical_subset = nhanes_select[, c('Marijuana', 'SmokeNow', 'HardDrugs', 'Diabetes', 'LittleInterest', 'TVHrsDay', 'CompHrsDay',  'BMI')]   
+nhanes_categorical_subset = nhanes_select[, c('SmokeNow', 'TVHrsDay', 'CompHrsDay','Diabetes',
+                                              'HealthGen', 'LittleInterest', 'Race1', 
+                                              'MaritalStatus', 'BMI')]   
 
 # Assuming 'nhanes_categorical_subset' already contains the 'BMI' column and categorical variables
 
@@ -544,10 +549,9 @@ for (var in names(nhanes_categorical_subset)) {
   }
 }
 
-
 ```
-
-Based Upon the findings above, it seems reasonable to try removing both `UrineVol1` and `TotChol`, as there individual correlations with BMI are negligible.
+Since all the p-values for the categorical values above are very small, we do not sneed to remove them. 
+However, based upon the findings of the numerical data above, it seems reasonable to try removing both `UrineVol1` and `TotChol`, as their individual correlations with BMI are negligible.
 
 First we will try removing `UrineVol1` at a significance level $\alpha = 0.01$:
 
@@ -566,7 +570,7 @@ anova(fit_add_aic_without, fit_add_aic_with)
 
 Since the p-value of the anova test comparing the models with and without `UrineVol` is greater than 0.01, we fail to reject the null hypothesis, and should remove the variable.
 
-Now consider removing `TotChol` at a significance level $\alpha = 0.01$.
+Now let's consider removing `TotChol` at a significance level $\alpha = 0.01$.
 
 ```{r}
 fit_add_aic_with = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
@@ -594,11 +598,10 @@ summary(final_add$analyses[[1]])
 ```
 
 
-
 #### Data Interactions
 
 
-To determine if interaction terms might improve our model, we will perform a backward AIC stepwise() function with added `Age` interaction terms. This seemed the most plausible and made the most sense from a domain perspective. It could be understandable for instance, that alcohol use at a young age vs an older age might have cpmbined effects upon BMI.
+To determine if interaction terms might improve our model, we will perform a backward AIC stepwise() function with added `Age` interaction terms. This seemed the most plausible and made the most sense from a domain perspective. It could be understandable for instance, that alcohol use at a young age vs an older age might have combined effects upon BMI.
 
 
 ```{r}
@@ -607,7 +610,9 @@ To determine if interaction terms might improve our model, we will perform a bac
 scope <- list(upper = ~ Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   TotChol +  Diabetes + HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:AlcoholYear +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay + Age:CompHrsDay +  Age:TotChol +  Age:Diabetes +  Age:HealthGen +  Age:LittleInterest +  Age:SleepHrsNight +  Age:Race1 +  Age:MaritalStatus,
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:AlcoholYear +  Age:SmokeNow +  Age:BPDiaAve +  
+    Age:BPSysAve  + Age:TVHrsDay + Age:CompHrsDay +  Age:TotChol +  Age:Diabetes +  Age:HealthGen +
+    Age:LittleInterest +  Age:SleepHrsNight +  Age:Race1 +  Age:MaritalStatus,
              lower = ~ 1)
 expr <- expression(f1 <- lm(log(BMI) ~ 1),
                   f2 <- step(f1, scope = scope, trace = 0))
@@ -622,28 +627,33 @@ table(votes)
 
 ```
 
-Build the model with all the above predictors with > 3 votes
+We now build a model with all the above predictors with > 3 votes.
 
 ```{r}
 fit_int_aic = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
+  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
 summary(fit_int_aic$analyses[[1]])
 ```
 
-Consider taking out `Age:TVHrsDay`
+We conduct an anova test to check if we should keep `Age:TVHrsDay` or not as the individual p-values are not significant.
 
 ```{r}
+
 fit_int_aic_with = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  
+  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+
 # removing Age:TVHrsDay
 fit_int_aic_without =with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
+  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
 anova(fit_int_aic_without, fit_int_aic_with)
 ```
 
@@ -655,12 +665,15 @@ We also notice from the model that the the p-values for `Race1` categories and t
 fit_int_aic_with = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
+  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+
 # removing Age:Race1 and interaction
 fit_int_aic_without =with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  +  Age:Diabetes +   Age:HealthGen +  Age:MaritalStatus))
+  SleepHrsNight +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve
+  +  Age:Diabetes +   Age:HealthGen +  Age:MaritalStatus))
 anova(fit_int_aic_without, fit_int_aic_with)
 ```
 
@@ -672,7 +685,8 @@ So our final model with the addition of interactions is `final_int`, and is give
 final_int = with(imp, lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  
+  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
 summary(final_int$analyses[[1]])
 ```
 
@@ -692,7 +706,7 @@ hist(log(imp_df[imp_df$.imp == 1, ]$BPSysAve),
      xlab = "Log(BPSysAve)")
 ```
 
-We noticed that the non-transformed `BPSysAve` data appeared skewed right, so we applied a log transformation, and the distribution has improved
+We notice that the non-transformed `BPSysAve` data appears skewed right, so we apply a log transformation, and the distribution improves.
 
 BPDiasAve Trnasformation:
 
@@ -706,7 +720,7 @@ hist((imp_df[imp_df$.imp == 1, ]$BPDiaAve)^2,
      xlab = "BPDiaAve^2")
 ```
 
-In the case of `BPDiaAve`, we noticed that the non-transformed data appeared skewed left, so we applied a log transformation, and the distribution has improved somewhat, though it is a bit right skewed, but less skewed overall.
+In the case of `BPDiaAve`, we notice that the non-transformed data appeared skewed left, so we apply a log transformation, and the distribution improves somewhat, though it is a bit right skewed, but less skewed overall.
 
 Now we will consider our model with the log transformed BP measures:
 
@@ -715,34 +729,59 @@ Now we will consider our model with the log transformed BP measures:
 final_trns = with(imp, lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
   I(BPDiaAve^2) + log1p(BPSysAve) + TVHrsDay + CompHrsDay +
   Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) +  Age:log1p(BPSysAve)  + Age:TVHrsDay +  Age:Diabetes +  Age:HealthGen +  Age:Race1 +  Age:MaritalStatus))
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) +  
+    Age:log1p(BPSysAve)  + Age:TVHrsDay +  Age:Diabetes +  Age:HealthGen +  Age:Race1 +  
+    Age:MaritalStatus))
+
+#Note: we apply log1p to get the natural log of (1+BPSysAve), as we were getting infinity
+#for 0 and NaN for negative values of BPSysAve with log(BPSysAve)
+
 summary(final_trns$analyses[[1]])
 ```
 We notice that our R-Squared is the same as without the transformed data, but this will represent our final transformation model and we will more fully compare all three models in the next section.
 
 #### Final Models
 
-I will fill this out further later:
+Based on our analysis, these are the final 3 models that we will conduct further outlier and diagnostic assessments on:
 
-final_add
-final_int
-final_trns
+*Additive Model*
+log(BMI) ~ Age +  AlcoholYear + SmokeNow + BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay + TotChol +  Diabetes + HealthGen +  LittleInterest + SleepHrsNight +  Race1  +  MaritalStatus
+
+*Model with Interactions*
+log(BMI) ~  Age +  AlcoholYear + SmokeNow + BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay + Diabetes +  HealthGen + LittleInterest + SleepHrsNight +  Race1  +  MaritalStatus + Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay + Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus
+
+
+*Model with Transformation & Interactions*
+log(BMI) ~ Age +  AlcoholYear + SmokeNow + I(BPDiaAve^2) + log1p(BPSysAve) + TVHrsDay + CompHrsDay + Diabetes + HealthGen +  LittleInterest + SleepHrsNight +  Race1  + MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) + Age:log1p(BPSysAve)  + Age:TVHrsDay +  Age:Diabetes + Age:HealthGen +  Age:Race1 +  Age:MaritalStatus
+
+We arrived at these models using the following steps:
+1. Ruled out many variables by grouping them into similar domains and keeping only one representative variable in case we detected collinearity. This reduced the number of possible predictors from `r ncol(NHANES)-1` to `r ncol(nhanes_select)-1`.
+2. Dealt with missing data using multiple imputation using the `mice` package. 
+3. Fitted a first version of an additive model with the selected predictors and detected violations of equal variance and normality. 
+4. Log-transformed the response in an attempt to alleviate the constant variance violation.
+5. Performed AIC and BIC stepwise processes and conducted anova tests to reduce the number of predictors further.
+6. Tested interaction of `Age` with other predictors as well as transformations of `BPDiaAve`, `BPSysAve`. 
 
 ## Results
 
 #### Outlier Assessment
 
+For each of the 3 models, we would  now like to see if there are any outliers that are influential, and that are having a large effect on our regressions. We will conduct this assessment using Cook's Distance. 
+
 ```{r}
-#finding outliers for each model
+#finding influential observations for each model
 
-indexs_trns = which(cooks.distance(final_trns$analyses[[1]]) > 4 / length(cooks.distance(final_trns$analyses[[1]])))
+indexs_trns = which(cooks.distance(final_trns$analyses[[1]]) > 4 / 
+                      length(cooks.distance(final_trns$analyses[[1]])))
 
-indexs_int = which(cooks.distance(final_int$analyses[[1]]) > 4 / length(cooks.distance(final_int$analyses[[1]])))
+indexs_int = which(cooks.distance(final_int$analyses[[1]]) > 4 / 
+                     length(cooks.distance(final_int$analyses[[1]])))
 
-indexs_add = which(cooks.distance(final_add$analyses[[1]]) > 4 / length(cooks.distance(final_add$analyses[[1]])))
+indexs_add = which(cooks.distance(final_add$analyses[[1]]) > 4 / 
+                     length(cooks.distance(final_add$analyses[[1]])))
 
 
-#removing outliers for each model
+#removing influential observations for each model using the first imputed dataset
 
 imp_df_1 = imp_df[imp_df$.imp == 1, ]
 imp_df_1_trns_rm = imp_df_1[-indexs_trns, ]
@@ -750,41 +789,50 @@ imp_df_1_int_rm = imp_df_1[-indexs_int, ]
 imp_df_1_add_rm = imp_df_1[-indexs_add, ]
 ```
 
+Next, we will fit the 3 models afer removing the influential observations.
 
 ```{r}
-#Final_add Model fit with outliers removed
+#Final_add Model fit with influential observations removed
 
-final_add = lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = imp_df_1_add_rm)
+final_add = lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+                 BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+                 TotChol +  Diabetes +  HealthGen +  LittleInterest +
+                 SleepHrsNight +  Race1  +  MaritalStatus, data = imp_df_1_add_rm)
 ```
 
 ```{r}
-#Final_int Model fit with outliers removed
+#Final_int Model fit with influential observations removed
 
-final_int = lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = imp_df_1_int_rm)
+final_int = lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow + BPDiaAve + BPSysAve +
+                 TVHrsDay + CompHrsDay + Diabetes +  HealthGen +  
+                 LittleInterest + SleepHrsNight +  Race1  +  MaritalStatus +  
+                 Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay +
+                 Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus,
+               data = imp_df_1_int_rm)
 
 ```
 
 ```{r}
-#Final_trns Model fit with outliers removed 
+#Final_trns Model fit with influential observations removed 
 
-final_trns = lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  I(BPDiaAve^2) + log1p(BPSysAve) + TVHrsDay + CompHrsDay +
-  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) +  Age:log1p(BPSysAve)  + Age:TVHrsDay +  Age:Diabetes +  Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = imp_df_1_trns_rm)
+final_trns = lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow + I(BPDiaAve^2) +
+                  log1p(BPSysAve) + TVHrsDay + CompHrsDay + Diabetes +  
+                  HealthGen +  LittleInterest + SleepHrsNight +  Race1  +
+                  MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) +
+                  Age:log1p(BPSysAve)  + Age:TVHrsDay +  Age:Diabetes +
+                  Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, 
+                data = imp_df_1_trns_rm)
 ```
 
 
 ### Model Diagnostics
 
+Now that we have removed the influential observations, we would like to conduct different diagnostic tests and see how the 3 models perform. 
+
 Diagnostic Tests
 
 ```{r}
+#Functions to calculate various diagnostics
 get_adj_r2 = function(model) {
   summary(model)$adj.r.squared
 }
@@ -804,31 +852,146 @@ get_bp = function(model) {
 
 
 ```{r}
-# bp results
-row_names = c("final_add", "final_int", "final_trns")
-col_names = c("Model", "BP test", "Shapiro test", "LOOCV_RMSE", "Adj R2")
+# model comparison results
+row_names = c("Additive Model", "Model with Interactions", "Model with Transformations")
+col_names = c("Model", "BP Test", "Shapiro-Wilk Test", "Adjusted R2")
+
 bp_results = c(get_bp(final_add), get_bp(final_int), get_bp(final_trns))
 shapiro_results = c(get_shapiro(final_add), get_shapiro(final_int), get_shapiro(final_trns))
-rmse_results = c(calc_loocv_rmse(final_add), calc_loocv_rmse(final_int), calc_loocv_rmse(final_trns))
 r2_results = c(get_adj_r2(final_add), get_adj_r2(final_int), get_adj_r2(final_trns))
 
-results_table = cbind(row_names, bp_results, shapiro_results, rmse_results, r2_results)
+results_table = cbind(row_names, signif(bp_results,6), signif(shapiro_results,6), round(r2_results,6))
 knitr::kable(results_table, col.names = col_names, caption = "Model Comparison")
+
 ```
 
-In summary we have been able to build a model which can explain more than 55% of the variability in the dataset, according to adjusted $R^2$.
-We note, that as far as leave-one-out-cross-valitation RMSE and adjusted $R^2$ all three, the additive model, the interaction model and the transformed model are performing very similarly. All models have issues with heteroskedasticity and violation of normality assumptions according to Breusch-Pagan test and Shapiro test, respectively. 
+As we see from the table above, we have been able to build 3 models which can explain more than 49% of the variability in the dataset, according to adjusted $R^2$.
+As far as adjusted $R^2$ is concerned, the interaction model and the transformed model perform better than the additive model, by explaining about 7.5% more of the variability. All models have issues with heteroskedasticity and violation of normality assumptions according to the Breusch-Pagan and Shapiro-Wilk tests, respectively. 
 
-We arrived at these models using the steps:
-1. Ruling out many variables by grouping them into similar domains and keeping only one representative in case we detected collinearity. This reduced the number of possible predictors from `r ncol(NHANES)-1` to `r ncol(nhanes_select)-1`.
-1. We dealt with missing data using multiple imputation using the `mice` package. 
-1. We fitted a first version of an additive model with the selected predictors and detected violations of equal variance and normality. 
-1. We log-transformed the response to alleviate some, but not all non-normality.
-1. We performed AIC and BIC stepwise processes to reduce the number of predictors further. 
-1. We tested interaction of `Age` with other predictors as well as transformations of `BPDiaAve`, `BPSysAve`. 
+Next, we'll split the data into testing and training sets to see how these 3 models compare when we evaluate the LOOCV-RMSE on the training (unseen) data. 
+
+```{r}
+set.seed(420)
+#Splitting the data for the Final_add Model
+add_idx  = sample(nrow(imp_df_1_add_rm), size = trunc(0.80 * nrow(imp_df_1_add_rm)))
+add_trn_data = imp_df_1_add_rm[add_idx, ]
+add_tst_data = imp_df_1_add_rm[-add_idx, ]
+
+#Splitting the data for the Final_int Model
+int_idx  = sample(nrow(imp_df_1_int_rm), size = trunc(0.80 * nrow(imp_df_1_int_rm)))
+int_trn_data = imp_df_1_int_rm[int_idx, ]
+int_tst_data = imp_df_1_int_rm[-int_idx, ]
+
+#Splitting the data for the Final_trns Model
+trns_idx  = sample(nrow(imp_df_1_trns_rm), size = trunc(0.80 * nrow(imp_df_1_trns_rm)))
+trns_trn_data = imp_df_1_trns_rm[trns_idx, ]
+trns_tst_data = imp_df_1_trns_rm[-trns_idx, ]
+```
+
+We will re-fit the models using the training data.
+
+```{r}
+#Final_add Model fit with influential observations removed, and using training data
+
+final_add2 = lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+                 BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+                 TotChol +  Diabetes +  HealthGen +  LittleInterest +
+                 SleepHrsNight +  Race1  +  MaritalStatus, data = add_trn_data)
+```
+
+```{r}
+#Final_int Model fit with influential observations removed, and using training data
+
+final_int2 = lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow + BPDiaAve + BPSysAve +
+                 TVHrsDay + CompHrsDay + Diabetes +  HealthGen +  
+                 LittleInterest + SleepHrsNight +  Race1  +  MaritalStatus +  
+                 Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay +
+                 Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus,
+               data = int_trn_data)
+
+```
+
+
+```{r}
+#Final_add Model fit with influential observations removed, and using training data
+
+final_trns2 = lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow + I(BPDiaAve^2) +
+                  log1p(BPSysAve) + TVHrsDay + CompHrsDay + Diabetes +  
+                  HealthGen +  LittleInterest + SleepHrsNight +  Race1  +
+                  MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) +
+                  Age:log1p(BPSysAve)  + Age:TVHrsDay +  Age:Diabetes +
+                  Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, 
+                data = trns_trn_data)
+```
+
+```{r}
+# model comparison results
+row_names = c("Additive Model", "Model with Interactions", "Model with Transformations")
+col_names = c("Model", "LOOCV_RMSE", "Avg Pct Error")
+
+
+predicted_add2 = exp(predict(final_add2, newdata = add_tst_data))
+avg_pct_error_add2 = mean(abs(predicted_add2 - add_tst_data$BMI)
+                     /predicted_add2) * 100 
+
+predicted_int2 = exp(predict(final_int2, newdata = int_tst_data))
+avg_pct_error_int2 = mean(abs(predicted_int2 - int_tst_data$BMI)
+                     /predicted_int2) * 100 
+
+predicted_trns2 = exp(predict(final_trns2, newdata = trns_tst_data))
+avg_pct_error_trns2 = mean(abs(predicted_trns2 - trns_tst_data$BMI)
+                     /predicted_trns2) * 100 
+
+rmse_results2 = c(calc_loocv_rmse(final_add2), calc_loocv_rmse(final_int2), calc_loocv_rmse(final_trns2))
+avg_pct_error2 = c(avg_pct_error_add2, avg_pct_error_int2, avg_pct_error_trns2)
+
+results_table2 = cbind(row_names, round(rmse_results2,6), round(avg_pct_error2,6))
+knitr::kable(results_table2, col.names = col_names, caption = "Model Comparison")
+
+```
+
+We would like to select a model with the lowest value for LOOCV-RMSE, so it does not overfit or underfit, and well as has the lowest value for Average Percent Error so it is able to perform well while predicting *unseen* data. Based on the above results, although the model with transformations has the lowest values for these metrics, there is not a big difference when compared to the other 2 models, especially the model with interactions. 
+
+Let's also look at the plots for the predicted versus the actual values for these 3 models and add the line $y = x$.
+
+```{r}
+par(mfrow=c(1,3))
+plot(add_tst_data$BMI,
+     predicted_add2, 
+     col = "dodgerblue", 
+     pch = 20,
+     main = "Additive Model",
+     xlab = "Actual",
+     ylab = "Predicted"
+     )
+abline(a=0, b=1, col = "darkorange", lwd = 3)
+
+plot(int_tst_data$BMI,
+     predicted_int2, 
+     col = "dodgerblue", 
+     pch = 20,
+     main = "Model with Interactions",
+     xlab = "Actual",
+     ylab = "Predicted"
+     )
+abline(a=0, b=1, col = "darkorange", lwd = 3)
+
+plot(trns_tst_data$BMI,
+     predicted_trns2, 
+     col = "dodgerblue", 
+     pch = 20,
+     main = "Model with Transformations",
+     xlab = "Actual",
+     ylab = "Predicted"
+     )
+abline(a=0, b=1, col = "darkorange", lwd = 3)
+```
+
+We see that the Model with Transformations does better at predicting BMI, however, it does not differ that much from the Model with Interactions. The additive model does not perform as well as the other two models for predicting BMI. 
 
 ## Discussion
 
+Based on our findings above, we feel that from a prediction and explainability point of view, we would prefer the interaction model, since the transformations do not seem to help much and the interaction model is a little simpler than the model with transformations. 
 
 
 ## Appendix
