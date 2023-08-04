@@ -246,9 +246,9 @@ Now let's do some tests on this model to identify any potential issues.
 
 ```{r}
 library(lmtest)
-if (!require(nortest)) {
-  install.packages("nortest", quiet = TRUE)  
-}
+# if (!require(nortest)) {
+#   install.packages("nortest", quiet = TRUE)  
+# }
 # install.packages("nortest", quiet = TRUE)
 library(nortest, quietly = TRUE)
 
@@ -264,16 +264,11 @@ model_diagnostics = function(fit){
   fit_summary <- data.frame(bptest_p = rep(0,5), ad_test = rep(0,5))
   for (i in 1:5){
     fit_summary$bptest_p[i] = unname(bptest(fit$analyses[[i]])$p.value)
-    ad.test(residuals(fit$analyses[[i]]))$p.value 
+    shapiro.test(residuals(fit$analyses[[i]]))$p.value 
   }
-  knitr::kable(fit_summary, col.names = c("BP Test", "AD Test"))
+  knitr::kable(fit_summary, col.names = c("BP Test", "Shapiro Test"))
 }
 
-# cooks distance to check for influential observations
-cooks_function = function(fit){
-  cook_thresh = 4 * cooks.distance(fit$analyses[[1]]) / nrow(imp)
-  sum(cooks.distance(fit$analyses[[1]]) > cook_thresh)
-}
  
 # model assessments
 model_assess = function(fit){
@@ -494,6 +489,7 @@ There appear to be no major issues with collinearity in this additive model.
 Additionally, we want to check which variables are correlated with BMI to further investigate possible interaction terms, and determine if there are varaibles we could again consider dropping.  
 
 ```{r}
+library("corrplot")
 #Age +  AlcoholYear + SmokeNow +
   #BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
  # TotChol +  Diabetes +  UrineVol1 +  HealthGen +  LittleInterest +
@@ -736,43 +732,77 @@ indexs_add = which(cooks.distance(final_add$analyses[[1]]) > 4 / length(cooks.di
 #removing outliers for each model
 
 imp_df_1 = imp_df[imp_df$.imp == 1, ]
-im_df_1_trns_rm = imp_df_1[-indexs_trns, ]
-im_df_1_int_rm = imp_df_1[-indexs_int, ]
-im_df_1_add_rm = imp_df_1[-indexs_add, ]
-```
-
-```{r}
-#Final_trns Model fit with outliers removed 
-
-lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
-  I(BPDiaAve^2) + log1p(BPSysAve) + TVHrsDay + CompHrsDay +
-  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) +  Age:log1p(BPSysAve)  + Age:TVHrsDay +  Age:Diabetes +  Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = im_df_1_trns_rm)
-
-```
-
-```{r}
-#Final_int Model fit with outliers removed
-
-lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
-  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
-  Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = im_df_1_int_rm)
-
+imp_df_1_trns_rm = imp_df_1[-indexs_trns, ]
+imp_df_1_int_rm = imp_df_1[-indexs_int, ]
+imp_df_1_add_rm = imp_df_1[-indexs_add, ]
 ```
 
 
 ```{r}
 #Final_add Model fit with outliers removed
 
-lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+final_add = lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
   BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
   Diabetes +  HealthGen +  LittleInterest +
-  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = im_df_1_add_rm)
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = imp_df_1_add_rm)
+```
+
+```{r}
+#Final_int Model fit with outliers removed
+
+final_int = lm(log(BMI) ~  Age +  AlcoholYear + SmokeNow +
+  BPDiaAve + BPSysAve + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:BPDiaAve +  Age:BPSysAve  + Age:TVHrsDay  +  Age:Diabetes +   Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = imp_df_1_int_rm)
 
 ```
 
+```{r}
+#Final_trns Model fit with outliers removed 
+
+final_trns = lm(log(BMI) ~ Age +  AlcoholYear + SmokeNow +
+  I(BPDiaAve^2) + log1p(BPSysAve) + TVHrsDay + CompHrsDay +
+  Diabetes +  HealthGen +  LittleInterest +
+  SleepHrsNight +  Race1  +  MaritalStatus +  Age:SmokeNow +  Age:I(BPDiaAve^2) +  Age:log1p(BPSysAve)  + Age:TVHrsDay +  Age:Diabetes +  Age:HealthGen +  Age:Race1 +  Age:MaritalStatus, data = imp_df_1_trns_rm)
+```
+
+
 ### Model Diagnostics
+
+Diagnostic Tests
+
+```{r}
+get_adj_r2 = function(model) {
+  summary(model)$adj.r.squared
+}
+
+calc_loocv_rmse = function(model) {
+  sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+
+get_shapiro = function(model) {
+  shapiro.test(resid(model))$p.value
+}
+
+get_bp = function(model) {
+  unname(bptest(model)$p.value)
+}
+```
+
+
+```{r}
+# bp results
+row_names = c("final_add", "final_int", "final_trns")
+col_names = c("Model", "BP test", "Shapiro test", "LOOCV_RMSE", "Adj R2")
+bp_results = c(get_bp(final_add), get_bp(final_int), get_bp(final_trns))
+shapiro_results = c(get_shapiro(final_add), get_shapiro(final_int), get_shapiro(final_trns))
+rmse_results = c(calc_loocv_rmse(final_add), calc_loocv_rmse(final_int), calc_loocv_rmse(final_trns))
+r2_results = c(get_adj_r2(final_add), get_adj_r2(final_int), get_adj_r2(final_trns))
+
+results_table = cbind(row_names, bp_results, shapiro_results, rmse_results, r2_results)
+knitr::kable(results_table, col.names = col_names, caption = "Model Comparison")
+```
+
 
 ## Discussion
 
